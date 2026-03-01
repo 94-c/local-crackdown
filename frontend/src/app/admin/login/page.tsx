@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { apiClient } from "@/lib/api-client";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function AdminLoginPage() {
@@ -34,9 +35,15 @@ export default function AdminLoginPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">관리자 로그인</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <div className="flex flex-col items-center gap-2">
+          <Image
+            src="/images/mascot.png"
+            alt="지방단속"
+            width={100}
+            height={100}
+            priority
+          />
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             관리자 계정으로 로그인하세요
           </p>
         </div>

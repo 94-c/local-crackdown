@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { apiClient } from "@/lib/api-client";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function SignupPage() {
@@ -49,9 +50,15 @@ export default function SignupPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">회원가입</h1>
-          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+        <div className="flex flex-col items-center gap-2">
+          <Image
+            src="/images/mascot.png"
+            alt="지방단속"
+            width={100}
+            height={100}
+            priority
+          />
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             새 계정을 만들어 챌린지에 참여하세요
           </p>
         </div>

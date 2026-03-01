@@ -3,13 +3,17 @@ import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Challenge",
-  description: "4-week challenge management system",
+  title: "지방단속 | Fat Patrol",
+  description: "4주 팀 경쟁 챌린지 관리 시스템",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/images/mascot.png",
+    apple: "/images/mascot.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Challenge",
+    title: "지방단속",
   },
 };
 

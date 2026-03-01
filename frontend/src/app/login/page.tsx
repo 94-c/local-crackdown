@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { apiClient } from "@/lib/api-client";
+import { isAdmin } from "@/lib/auth";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -21,7 +23,7 @@ export default function LoginPage() {
         { email, password }
       );
       localStorage.setItem("token", data.accessToken);
-      window.location.href = "/";
+      window.location.href = isAdmin(data.accessToken) ? "/admin" : "/";
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "로그인에 실패했습니다"
@@ -34,9 +36,15 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Challenge</h1>
-          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+        <div className="flex flex-col items-center gap-2">
+          <Image
+            src="/images/mascot.png"
+            alt="지방단속"
+            width={120}
+            height={120}
+            priority
+          />
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             4주 챌린지로 목표를 달성하세요
           </p>
         </div>
