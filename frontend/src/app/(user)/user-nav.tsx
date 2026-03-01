@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { href: "/home", label: "홈", icon: "🏠" },
   { href: "/team", label: "팀", icon: "👥" },
   { href: "/verify", label: "인증", icon: "📸" },
+  { href: "/result", label: "결과", icon: "📊" },
   { href: "/profile", label: "내정보", icon: "👤" },
 ];
 

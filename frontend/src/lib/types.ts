@@ -87,3 +87,19 @@ export interface Verification {
   verified: boolean;
   createdAt: string;
 }
+
+export interface WeeklyResult {
+  teamName: string;
+  teamScore: number;
+  teamRank: number;
+  isBottomTeam: boolean;
+  members: { nickname: string; achievementRate: number }[];
+}
+
+export interface UserWeeklyResult {
+  weekNumber: number;
+  achievementRate: number;
+  teamScore: number;
+  teamRank: number;
+  isBottomTeam: boolean;
+}
