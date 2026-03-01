@@ -33,3 +33,29 @@ export interface GoalType {
   description: string | null;
   directionIsDecrease: boolean;
 }
+
+export interface InBodyRecord {
+  id: string;
+  weight: number;
+  skeletalMuscleMass: number;
+  bodyFatPercentage: number;
+  recordDate: string;
+  createdAt: string;
+}
+
+export interface UserGoal {
+  id: string;
+  goalType: GoalType;
+  targetValue: number;
+  startValue: number;
+  createdAt: string;
+}
+
+export interface Achievement {
+  goalTypeName: string;
+  unit: string;
+  startValue: number;
+  targetValue: number;
+  currentValue: number;
+  achievementRate: number;
+}
