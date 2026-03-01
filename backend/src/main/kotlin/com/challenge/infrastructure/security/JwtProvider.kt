@@ -18,13 +18,14 @@ class JwtProvider(
         Keys.hmacShaKeyFor(secret.toByteArray())
     }
 
-    fun generateToken(userId: String, email: String): String {
+    fun generateToken(userId: String, email: String, role: String): String {
         val now = Date()
         val expiry = Date(now.time + expirationMs)
 
         return Jwts.builder()
             .subject(userId)
             .claim("email", email)
+            .claim("role", role)
             .issuedAt(now)
             .expiration(expiry)
             .signWith(key)
@@ -42,6 +43,10 @@ class JwtProvider(
 
     fun getUserIdFromToken(token: String): String {
         return getClaims(token).subject
+    }
+
+    fun getRoleFromToken(token: String): String {
+        return getClaims(token)["role"] as String
     }
 
     private fun getClaims(token: String): Claims {

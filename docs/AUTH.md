@@ -45,17 +45,49 @@
 
 ## API 엔드포인트
 
-| Method | Path | Auth | 설명 |
-|--------|------|------|------|
-| POST | /api/auth/kakao | No | 카카오 code로 로그인/회원가입 |
-| POST | /api/auth/admin/login | No | Admin 이메일 로그인 |
-| GET | /api/auth/me | JWT | 현재 유저 정보 |
-| POST | /api/auth/refresh | JWT | 토큰 갱신 |
+| Method | Path | Auth | 설명 | 구현 상태 |
+|--------|------|------|------|----------|
+| POST | /api/auth/kakao | No | 카카오 code로 로그인/회원가입 | **완료** |
+| POST | /api/auth/admin/login | No | Admin 이메일 로그인 | **완료** |
+| POST | /api/auth/signup | No | Admin 회원가입 | **완료** |
+| GET | /api/auth/me | JWT | 현재 유저 정보 | **완료** |
+| POST | /api/auth/refresh | JWT | 토큰 갱신 | 미구현 |
 
 ## 권한 분리
 
 ```
-/api/admin/** → role=ADMIN 필수
-/api/** → role=USER 또는 ADMIN
-/api/auth/** → 인증 불필요
+/api/admin/** → role=ADMIN 필수 (hasRole("ADMIN"))
+/api/auth/**  → 인증 불필요 (permitAll)
+/api/**       → role=USER 또는 ADMIN (authenticated)
 ```
+
+## 구현 세부사항
+
+### 카카오 OAuth 백엔드 플로우
+```
+POST /api/auth/kakao { code, redirectUri }
+→ KakaoOAuthService.getAccessToken(code, redirectUri)
+  → POST https://kauth.kakao.com/oauth/token
+→ KakaoOAuthService.getUserInfo(accessToken)
+  → GET https://kapi.kakao.com/v2/user/me
+→ AuthService.kakaoLogin: findByKakaoId or create user
+→ JwtProvider.generateToken(userId, email, role="USER")
+→ return TokenResponse { accessToken }
+```
+
+### 프론트엔드 플로우
+```
+/login → 카카오 버튼 클릭
+→ redirect: https://kauth.kakao.com/oauth/authorize?...
+→ 카카오 로그인 완료
+→ /auth/kakao/callback?code=xxx
+→ POST /api/auth/kakao { code, redirectUri }
+→ JWT 저장 (localStorage) → redirect /
+```
+
+### 환경 변수
+| 변수 | 위치 | 설명 |
+|------|------|------|
+| KAKAO_CLIENT_ID | backend/.env | 카카오 REST API 키 |
+| NEXT_PUBLIC_KAKAO_CLIENT_ID | frontend/.env.local | 카카오 REST API 키 (프론트) |
+| NEXT_PUBLIC_REDIRECT_URI | frontend/.env.local | 카카오 콜백 URL |

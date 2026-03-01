@@ -1,12 +1,10 @@
 package com.challenge.presentation.controller
 
-import com.challenge.application.dto.LoginRequest
-import com.challenge.application.dto.SignUpRequest
-import com.challenge.application.dto.TokenResponse
-import com.challenge.application.dto.UserResponse
+import com.challenge.application.dto.*
 import com.challenge.application.service.AuthService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
+import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -21,8 +19,19 @@ class AuthController(
         return authService.signUp(request)
     }
 
-    @PostMapping("/login")
-    fun login(@Valid @RequestBody request: LoginRequest): TokenResponse {
+    @PostMapping("/admin/login")
+    fun adminLogin(@Valid @RequestBody request: LoginRequest): TokenResponse {
         return authService.login(request)
+    }
+
+    @PostMapping("/kakao")
+    fun kakaoLogin(@Valid @RequestBody request: KakaoLoginRequest): TokenResponse {
+        return authService.kakaoLogin(request.code, request.redirectUri)
+    }
+
+    @GetMapping("/me")
+    fun me(authentication: Authentication): MeResponse {
+        val userId = authentication.principal as String
+        return authService.getMe(userId)
     }
 }

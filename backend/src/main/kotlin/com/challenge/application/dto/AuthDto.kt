@@ -27,6 +27,14 @@ data class LoginRequest(
     val password: String
 )
 
+data class KakaoLoginRequest(
+    @field:NotBlank
+    val code: String,
+
+    @field:NotBlank
+    val redirectUri: String
+)
+
 data class TokenResponse(
     val accessToken: String,
     val tokenType: String = "Bearer"
@@ -36,5 +44,14 @@ data class UserResponse(
     val id: String,
     val email: String,
     val nickname: String,
-    val profileImageUrl: String?
+    val profileImageUrl: String?,
+    val role: String
+)
+
+data class MeResponse(
+    val id: String,
+    val email: String,
+    val nickname: String,
+    val profileImageUrl: String?,
+    val role: String
 )
