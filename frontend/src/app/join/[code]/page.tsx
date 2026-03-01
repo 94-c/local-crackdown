@@ -19,6 +19,12 @@ export default function JoinPage() {
   const hasToken = !!getToken();
 
   useEffect(() => {
+    // 비로그인 시 로그인 페이지로 자동 리다이렉트
+    if (!hasToken) {
+      window.location.href = `/login?invite=${code}`;
+      return;
+    }
+
     const fetchInvite = async () => {
       try {
         const data = await apiClient.get<ChallengeInvite>(
@@ -36,7 +42,7 @@ export default function JoinPage() {
       }
     };
     fetchInvite();
-  }, [code]);
+  }, [code, hasToken]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -151,30 +157,13 @@ export default function JoinPage() {
           </div>
         )}
 
-        {hasToken ? (
-          <button
-            type="button"
-            onClick={handleJoin}
-            className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-          >
-            참가하기
-          </button>
-        ) : (
-          <div className="space-y-3">
-            <Link
-              href={`/login?invite=${code}`}
-              className="block w-full rounded-lg bg-black px-6 py-3 text-center text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-            >
-              로그인
-            </Link>
-            <Link
-              href={`/signup?invite=${code}`}
-              className="block w-full rounded-lg border border-gray-300 px-6 py-3 text-center transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
-            >
-              회원가입
-            </Link>
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={handleJoin}
+          className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+        >
+          참가하기
+        </button>
 
         <div className="text-center">
           <Link
