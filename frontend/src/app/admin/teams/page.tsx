@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { Challenge, Team } from "@/lib/types";
+import UserSearchDropdown from "@/components/UserSearchDropdown";
 
 export default function TeamsPage() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -15,8 +16,16 @@ export default function TeamsPage() {
   const [formLoading, setFormLoading] = useState(false);
 
   const [teamName, setTeamName] = useState("");
-  const [member1Id, setMember1Id] = useState("");
-  const [member2Id, setMember2Id] = useState("");
+  const [member1, setMember1] = useState<{
+    id: string;
+    nickname: string;
+    email: string;
+  } | null>(null);
+  const [member2, setMember2] = useState<{
+    id: string;
+    nickname: string;
+    email: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchChallenges = async () => {
@@ -65,22 +74,22 @@ export default function TeamsPage() {
 
   const resetForm = () => {
     setTeamName("");
-    setMember1Id("");
-    setMember2Id("");
+    setMember1(null);
+    setMember2(null);
     setShowForm(false);
   };
 
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedChallengeId) return;
+    if (!selectedChallengeId || !member1) return;
     setFormLoading(true);
 
     try {
       await apiClient.post("/api/admin/teams", {
         name: teamName,
         challengeId: selectedChallengeId,
-        member1Id,
-        member2Id: member2Id || null,
+        member1Id: member1.id,
+        member2Id: member2?.id || null,
       });
       resetForm();
       fetchTeams(selectedChallengeId);
@@ -184,36 +193,25 @@ export default function TeamsPage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label
-                    htmlFor="member1Id"
-                    className="block text-sm font-medium"
-                  >
-                    멤버1 ID
+                  <label className="block text-sm font-medium">
+                    멤버1
                   </label>
-                  <input
-                    id="member1Id"
-                    type="text"
-                    required
-                    value={member1Id}
-                    onChange={(e) => setMember1Id(e.target.value)}
-                    className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                    placeholder="사용자 ID"
+                  <UserSearchDropdown
+                    placeholder="사용자 검색 (필수)"
+                    selectedUser={member1}
+                    onSelect={setMember1}
+                    onClear={() => setMember1(null)}
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="member2Id"
-                    className="block text-sm font-medium"
-                  >
-                    멤버2 ID
+                  <label className="block text-sm font-medium">
+                    멤버2
                   </label>
-                  <input
-                    id="member2Id"
-                    type="text"
-                    value={member2Id}
-                    onChange={(e) => setMember2Id(e.target.value)}
-                    className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                    placeholder="사용자 ID (선택)"
+                  <UserSearchDropdown
+                    placeholder="사용자 검색 (선택)"
+                    selectedUser={member2}
+                    onSelect={setMember2}
+                    onClear={() => setMember2(null)}
                   />
                 </div>
               </div>

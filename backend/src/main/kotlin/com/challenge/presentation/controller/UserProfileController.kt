@@ -5,31 +5,25 @@ import com.challenge.application.dto.UpdateProfileRequest
 import com.challenge.application.service.AuthService
 import jakarta.validation.Valid
 import org.springframework.security.core.Authentication
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api/users/profile")
+@RequestMapping("/api/users")
 class UserProfileController(
     private val authService: AuthService
 ) {
 
-    @GetMapping
+    @GetMapping("/profile")
     fun getProfile(authentication: Authentication): ProfileResponse {
         val userId = authentication.principal as String
-        val me = authService.getMe(userId)
-        return ProfileResponse(
-            id = me.id,
-            email = me.email,
-            nickname = me.nickname,
-            profileImageUrl = me.profileImageUrl,
-            role = me.role,
-            gender = me.gender,
-            birthDate = me.birthDate,
-            height = me.height
-        )
+        return authService.getProfile(userId)
     }
 
-    @PutMapping
+    @PutMapping("/profile")
     fun updateProfile(
         authentication: Authentication,
         @Valid @RequestBody request: UpdateProfileRequest

@@ -1,11 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import Image from "next/image";
 import Link from "next/link";
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><p className="text-sm text-gray-500">로딩 중...</p></div>}>
+      <SignupContent />
+    </Suspense>
+  );
+}
+
+function SignupContent() {
+  const searchParams = useSearchParams();
+  const invite = searchParams.get("invite");
+
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,7 +49,11 @@ export default function SignupPage() {
 
     try {
       await apiClient.post("/api/auth/signup", { email, password, nickname });
-      window.location.href = "/login?registered=true";
+      if (invite) {
+        window.location.href = `/login?invite=${invite}&registered=true`;
+      } else {
+        window.location.href = "/login?registered=true";
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "회원가입에 실패했습니다"
@@ -46,6 +62,8 @@ export default function SignupPage() {
       setLoading(false);
     }
   };
+
+  const loginHref = invite ? `/login?invite=${invite}` : "/login";
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
@@ -148,7 +166,7 @@ export default function SignupPage() {
           <p>
             이미 계정이 있으신가요?{" "}
             <Link
-              href="/login"
+              href={loginHref}
               className="font-medium underline hover:text-black dark:hover:text-white"
             >
               로그인

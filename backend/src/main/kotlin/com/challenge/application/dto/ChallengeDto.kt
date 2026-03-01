@@ -3,7 +3,6 @@ package com.challenge.application.dto
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
-import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -70,32 +69,9 @@ data class ChallengeTeamDetailResponse(
     val members: List<ChallengeMemberDetailResponse>
 )
 
-data class ChallengeParticipantResponse(
-    val userId: String,
-    val nickname: String,
-    val email: String,
-    val joinedAt: LocalDateTime,
-    val hasTeam: Boolean,
-    val hasInbody: Boolean,
-    val hasGoals: Boolean
-)
-
 data class ChallengeDetailWithMembersResponse(
     val challenge: ChallengeResponse,
     val teams: List<ChallengeTeamDetailResponse>,
     val totalTeams: Int,
-    val totalMembers: Int,
-    val unassignedParticipants: List<ChallengeParticipantResponse>
-)
-
-data class MemberDetailResponse(
-    val userId: String,
-    val nickname: String,
-    val email: String,
-    val gender: String?,
-    val birthDate: LocalDate?,
-    val height: BigDecimal?,
-    val inbodyRecords: List<InBodyRecordResponse>,
-    val goals: List<UserGoalResponse>,
-    val achievements: List<AchievementResponse>
+    val totalMembers: Int
 )

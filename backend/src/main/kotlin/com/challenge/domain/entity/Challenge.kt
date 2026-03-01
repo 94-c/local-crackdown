@@ -18,6 +18,9 @@ class Challenge(
     @Column(columnDefinition = "TEXT")
     var description: String? = null,
 
+    @Column(name = "invite_code", nullable = false, unique = true, length = 8)
+    var inviteCode: String = generateInviteCode(),
+
     @Column(name = "start_date", nullable = false)
     var startDate: LocalDate,
 
@@ -26,9 +29,6 @@ class Challenge(
 
     @Column(name = "current_week", nullable = false)
     var currentWeek: Int = 0,
-
-    @Column(name = "invite_code", nullable = false, unique = true, length = 8)
-    var inviteCode: String = generateInviteCode(),
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -41,9 +41,12 @@ class Challenge(
     var updatedAt: LocalDateTime = LocalDateTime.now()
 ) {
     companion object {
+        private val ALPHANUMERIC = ('A'..'Z') + ('a'..'z') + ('0'..'9')
+
         fun generateInviteCode(): String {
-            val chars = "abcdefghijklmnopqrstuvwxyz0123456789"
-            return (1..8).map { chars.random() }.joinToString("")
+            return (1..8)
+                .map { ALPHANUMERIC.random() }
+                .joinToString("")
         }
     }
 }

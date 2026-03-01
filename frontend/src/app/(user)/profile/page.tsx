@@ -18,7 +18,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
 
-  const fetchData = useCallback(async (cId: string | null) => {
+  const fetchData = useCallback(async (cId: string) => {
     try {
       const achievementPromise = cId
         ? apiClient.get<Achievement[]>(`/api/goals/achievement?challengeId=${cId}`)
@@ -51,20 +51,30 @@ export default function ProfilePage() {
           await fetchData(cId);
         } else {
           const pendingId = localStorage.getItem("pendingChallengeId");
-          if (pendingId) setChallengeId(pendingId);
-          await fetchData(pendingId);
+          if (pendingId) {
+            setChallengeId(pendingId);
+            await fetchData(pendingId);
+          } else {
+            setLoadingData(false);
+          }
         }
       } catch {
         const pendingId = localStorage.getItem("pendingChallengeId");
-        if (pendingId) setChallengeId(pendingId);
-        await fetchData(pendingId);
+        if (pendingId) {
+          setChallengeId(pendingId);
+          await fetchData(pendingId);
+        } else {
+          setLoadingData(false);
+        }
       }
     };
     init();
   }, [fetchData]);
 
   const handleModalSuccess = () => {
-    fetchData(challengeId);
+    if (challengeId) {
+      fetchData(challengeId);
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -161,13 +171,15 @@ export default function ProfilePage() {
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">인바디 기록</h2>
-            <button
-              type="button"
-              onClick={() => setModalOpen(true)}
-              className="rounded-lg bg-black px-4 py-2 text-sm text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-            >
-              인바디 기록 추가
-            </button>
+            {challengeId && (
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
+                className="rounded-lg bg-black px-4 py-2 text-sm text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+              >
+                인바디 기록 추가
+              </button>
+            )}
           </div>
           {inbodyRecords.length === 0 ? (
             <div className="rounded-xl border border-gray-200 p-6 text-center dark:border-gray-700">
@@ -229,12 +241,14 @@ export default function ProfilePage() {
       </div>
 
       {/* InBody Modal */}
-      <InBodyModal
-        challengeId={challengeId}
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSuccess={handleModalSuccess}
-      />
+      {challengeId && (
+        <InBodyModal
+          challengeId={challengeId}
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          onSuccess={handleModalSuccess}
+        />
+      )}
     </main>
   );
 }

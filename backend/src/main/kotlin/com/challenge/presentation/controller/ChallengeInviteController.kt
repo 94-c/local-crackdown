@@ -8,13 +8,13 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api/challenges/invite")
+@RequestMapping("/api/challenges")
 class ChallengeInviteController(
     private val challengeService: ChallengeService
 ) {
 
-    @GetMapping("/{code}")
-    fun getByInviteCode(@PathVariable code: String): ChallengeInviteResponse {
+    @GetMapping("/invite/{code}")
+    fun getChallengeByInviteCode(@PathVariable code: String): ChallengeInviteResponse {
         return challengeService.getChallengeByInviteCode(code)
     }
 }

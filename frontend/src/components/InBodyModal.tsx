@@ -5,7 +5,7 @@ import { apiClient } from "@/lib/api-client";
 import type { InBodyRecord } from "@/lib/types";
 
 interface InBodyModalProps {
-  challengeId: string | null;
+  challengeId: string;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -55,7 +55,7 @@ export default function InBodyModal({
     setLoading(true);
     try {
       await apiClient.post<InBodyRecord>("/api/inbody", {
-        challengeId: challengeId || undefined,
+        challengeId,
         weight: parseFloat(weight),
         skeletalMuscleMass: parseFloat(muscleMass),
         bodyFatMass: parseFloat(fatMass),
@@ -63,6 +63,7 @@ export default function InBodyModal({
       });
       onSuccess();
       onClose();
+      // Reset form
       setWeight("");
       setMuscleMass("");
       setFatMass("");
@@ -111,7 +112,10 @@ export default function InBodyModal({
           </div>
 
           <div>
-            <label htmlFor="modal-weight" className="block text-sm font-medium">
+            <label
+              htmlFor="modal-weight"
+              className="block text-sm font-medium"
+            >
               체중 (kg)
             </label>
             <input
@@ -127,7 +131,10 @@ export default function InBodyModal({
           </div>
 
           <div>
-            <label htmlFor="modal-muscle" className="block text-sm font-medium">
+            <label
+              htmlFor="modal-muscle"
+              className="block text-sm font-medium"
+            >
               골격근량 (kg)
             </label>
             <input
@@ -143,7 +150,10 @@ export default function InBodyModal({
           </div>
 
           <div>
-            <label htmlFor="modal-fatmass" className="block text-sm font-medium">
+            <label
+              htmlFor="modal-fatmass"
+              className="block text-sm font-medium"
+            >
               체지방량 (kg)
             </label>
             <input

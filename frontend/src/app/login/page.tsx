@@ -1,12 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { isAdmin } from "@/lib/auth";
 import Image from "next/image";
 import Link from "next/link";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><p className="text-sm text-gray-500">로딩 중...</p></div>}>
+      <LoginContent />
+    </Suspense>
+  );
+}
+
+function LoginContent() {
+  const searchParams = useSearchParams();
+  const invite = searchParams.get("invite");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -23,7 +35,12 @@ export default function LoginPage() {
         { email, password }
       );
       localStorage.setItem("token", data.accessToken);
-      window.location.href = isAdmin(data.accessToken) ? "/admin" : "/home";
+
+      if (invite) {
+        window.location.href = `/join/${invite}`;
+      } else {
+        window.location.href = isAdmin(data.accessToken) ? "/admin" : "/home";
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "로그인에 실패했습니다"
@@ -32,6 +49,8 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  const signupHref = invite ? `/signup?invite=${invite}` : "/signup";
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
@@ -99,7 +118,7 @@ export default function LoginPage() {
           <p>
             계정이 없으신가요?{" "}
             <Link
-              href="/signup"
+              href={signupHref}
               className="font-medium underline hover:text-black dark:hover:text-white"
             >
               회원가입

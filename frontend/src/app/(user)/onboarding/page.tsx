@@ -2,45 +2,91 @@
 
 import { useState, useEffect } from "react";
 import { apiClient } from "@/lib/api-client";
-import type { GoalType, Team, InBodyRecord, UserGoal } from "@/lib/types";
+import type { GoalType, Team, InBodyRecord, UserGoal, UserProfile } from "@/lib/types";
 import Image from "next/image";
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [goalTypes, setGoalTypes] = useState<GoalType[]>([]);
 
-  // Step 1: InBody
+  // Step 1: Basic Profile
+  const [gender, setGender] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [height, setHeight] = useState("");
+
+  // Step 2: InBody
   const [weight, setWeight] = useState("");
   const [muscleMass, setMuscleMass] = useState("");
-  const [bodyFat, setBodyFat] = useState("");
+  const [fatMass, setFatMass] = useState("");
+  const [recordDate, setRecordDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
 
-  // Step 2: Goals
+  // Step 3: Goals
   const [selectedGoals, setSelectedGoals] = useState<
     { goalTypeId: string; targetValue: string }[]
   >([]);
 
+  const fatPercentage =
+    weight && fatMass
+      ? ((parseFloat(fatMass) / parseFloat(weight)) * 100).toFixed(1)
+      : null;
+
   useEffect(() => {
     const init = async () => {
       try {
-        const [teams, types] = await Promise.all([
+        const [teams, types, profile] = await Promise.all([
           apiClient.get<Team[]>("/api/teams/me"),
           apiClient.get<GoalType[]>("/api/goal-types"),
+          apiClient.get<UserProfile>("/api/users/profile"),
         ]);
+
         if (teams.length > 0) {
           setChallengeId(teams[0].challengeId);
         } else {
           setError("참여 중인 챌린지가 없습니다. 관리자에게 문의하세요.");
         }
         setGoalTypes(types);
+
+        // Auto-skip step 1 if basic profile is already filled
+        if (profile.gender && profile.birthDate && profile.height) {
+          setStep(2);
+        }
       } catch {
         setError("데이터를 불러오는데 실패했습니다. 다시 시도해주세요.");
+      } finally {
+        setInitialLoading(false);
       }
     };
     init();
   }, []);
+
+  const handleProfileSubmit = async () => {
+    if (!gender || !birthDate || !height) {
+      setError("모든 항목을 입력해주세요.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      await apiClient.put<UserProfile>("/api/users/profile", {
+        gender,
+        birthDate,
+        height: parseFloat(height),
+      });
+      setStep(2);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "프로필 저장에 실패했습니다"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInBodySubmit = async () => {
     if (!challengeId) return;
@@ -51,11 +97,14 @@ export default function OnboardingPage() {
         challengeId,
         weight: parseFloat(weight),
         skeletalMuscleMass: parseFloat(muscleMass),
-        bodyFatPercentage: parseFloat(bodyFat),
+        bodyFatMass: parseFloat(fatMass),
+        recordDate,
       });
-      setStep(2);
+      setStep(3);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "인바디 등록에 실패했습니다");
+      setError(
+        err instanceof Error ? err.message : "인바디 등록에 실패했습니다"
+      );
     } finally {
       setLoading(false);
     }
@@ -76,7 +125,9 @@ export default function OnboardingPage() {
 
   const updateTargetValue = (goalTypeId: string, value: string) => {
     setSelectedGoals((prev) =>
-      prev.map((g) => (g.goalTypeId === goalTypeId ? { ...g, targetValue: value } : g))
+      prev.map((g) =>
+        g.goalTypeId === goalTypeId ? { ...g, targetValue: value } : g
+      )
     );
   };
 
@@ -101,9 +152,11 @@ export default function OnboardingPage() {
           targetValue: parseFloat(goal.targetValue),
         });
       }
-      setStep(3);
+      setStep(4);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "목표 설정에 실패했습니다");
+      setError(
+        err instanceof Error ? err.message : "목표 설정에 실패했습니다"
+      );
     } finally {
       setLoading(false);
     }
@@ -113,15 +166,23 @@ export default function OnboardingPage() {
     window.location.href = "/profile";
   };
 
+  if (initialLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-6">
+        <p className="text-gray-500 dark:text-gray-400">불러오는 중...</p>
+      </main>
+    );
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
       <div className="w-full max-w-md space-y-6">
-        {/* Progress Indicator */}
+        {/* Progress Indicator — 4 steps */}
         <div className="flex items-center justify-center gap-2">
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
-              className={`h-2 w-16 rounded-full transition-colors ${
+              className={`h-2 w-12 rounded-full transition-colors ${
                 s <= step
                   ? "bg-black dark:bg-white"
                   : "bg-gray-200 dark:bg-gray-700"
@@ -130,8 +191,106 @@ export default function OnboardingPage() {
           ))}
         </div>
 
-        {/* Step 1: InBody */}
+        {/* Step 1: Basic Profile */}
         {step === 1 && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <Image
+                src="/images/mascot.png"
+                alt="지방단속"
+                width={100}
+                height={100}
+                priority
+                className="mx-auto"
+              />
+              <h1 className="mt-4 text-2xl font-bold">기초 정보 입력</h1>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                정확한 분석을 위해 기본 정보를 입력해주세요
+              </p>
+            </div>
+
+            {error && (
+              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium">성별</label>
+                <div className="mt-2 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setGender("MALE")}
+                    className={`flex-1 rounded-lg border px-4 py-3 text-sm font-medium transition ${
+                      gender === "MALE"
+                        ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black"
+                        : "border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    남성
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGender("FEMALE")}
+                    className={`flex-1 rounded-lg border px-4 py-3 text-sm font-medium transition ${
+                      gender === "FEMALE"
+                        ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black"
+                        : "border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    여성
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="birthDate"
+                  className="block text-sm font-medium"
+                >
+                  생년월일
+                </label>
+                <input
+                  id="birthDate"
+                  type="date"
+                  required
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="height" className="block text-sm font-medium">
+                  키 (cm)
+                </label>
+                <input
+                  id="height"
+                  type="number"
+                  step="0.1"
+                  required
+                  value={height}
+                  onChange={(e) => setHeight(e.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+                  placeholder="예: 175.5"
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleProfileSubmit}
+              disabled={loading || !gender || !birthDate || !height}
+              className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+            >
+              {loading ? "저장 중..." : "다음"}
+            </button>
+          </div>
+        )}
+
+        {/* Step 2: InBody */}
+        {step === 2 && (
           <div className="space-y-6">
             <div className="text-center">
               <Image
@@ -156,6 +315,22 @@ export default function OnboardingPage() {
 
             <div className="space-y-4">
               <div>
+                <label
+                  htmlFor="recordDate"
+                  className="block text-sm font-medium"
+                >
+                  측정일
+                </label>
+                <input
+                  id="recordDate"
+                  type="date"
+                  value={recordDate}
+                  onChange={(e) => setRecordDate(e.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+                />
+              </div>
+
+              <div>
                 <label htmlFor="weight" className="block text-sm font-medium">
                   체중 (kg)
                 </label>
@@ -172,7 +347,10 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label htmlFor="muscleMass" className="block text-sm font-medium">
+                <label
+                  htmlFor="muscleMass"
+                  className="block text-sm font-medium"
+                >
                   골격근량 (kg)
                 </label>
                 <input
@@ -188,35 +366,58 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label htmlFor="bodyFat" className="block text-sm font-medium">
-                  체지방률 (%)
+                <label htmlFor="fatMass" className="block text-sm font-medium">
+                  체지방량 (kg)
                 </label>
                 <input
-                  id="bodyFat"
+                  id="fatMass"
                   type="number"
                   step="0.1"
                   required
-                  value={bodyFat}
-                  onChange={(e) => setBodyFat(e.target.value)}
+                  value={fatMass}
+                  onChange={(e) => setFatMass(e.target.value)}
                   className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                  placeholder="예: 22.5"
+                  placeholder="예: 15.2"
                 />
+                {fatPercentage && (
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    체지방률: {fatPercentage}%
+                  </p>
+                )}
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleInBodySubmit}
-              disabled={loading || !weight || !muscleMass || !bodyFat || !challengeId}
-              className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-            >
-              {loading ? "저장 중..." : "다음"}
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  setStep(1);
+                }}
+                className="flex-1 rounded-lg border border-gray-300 px-6 py-3 transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
+              >
+                이전
+              </button>
+              <button
+                type="button"
+                onClick={handleInBodySubmit}
+                disabled={
+                  loading ||
+                  !weight ||
+                  !muscleMass ||
+                  !fatMass ||
+                  !challengeId
+                }
+                className="flex-1 rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+              >
+                {loading ? "저장 중..." : "다음"}
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Step 2: Goals */}
-        {step === 2 && (
+        {/* Step 3: Goals */}
+        {step === 3 && (
           <div className="space-y-6">
             <div className="text-center">
               <h1 className="text-2xl font-bold">목표 설정</h1>
@@ -269,8 +470,18 @@ export default function OnboardingPage() {
                         }`}
                       >
                         {selected && (
-                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          <svg
+                            className="h-3 w-3"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={3}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M5 13l4 4L19 7"
+                            />
                           </svg>
                         )}
                       </div>
@@ -308,7 +519,7 @@ export default function OnboardingPage() {
                 type="button"
                 onClick={() => {
                   setError("");
-                  setStep(1);
+                  setStep(2);
                 }}
                 className="flex-1 rounded-lg border border-gray-300 px-6 py-3 transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
               >
@@ -326,8 +537,8 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 3: Complete */}
-        {step === 3 && (
+        {/* Step 4: Complete */}
+        {step === 4 && (
           <div className="space-y-6 text-center">
             <Image
               src="/images/mascot.png"

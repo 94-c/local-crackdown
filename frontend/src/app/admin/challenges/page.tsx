@@ -1,9 +1,36 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
 import type { Challenge } from "@/lib/types";
+
+function CopyInviteButton({ inviteCode }: { inviteCode: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const url = `${window.location.origin}/join/${inviteCode}`;
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // silently fail
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="rounded-lg px-3 py-1.5 text-xs text-gray-500 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+      title="초대 링크 복사"
+    >
+      {copied ? "복사됨!" : "초대 복사"}
+    </button>
+  );
+}
 
 export default function ChallengesPage() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -16,7 +43,7 @@ export default function ChallengesPage() {
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const router = useRouter();
+
 
   const fetchChallenges = useCallback(async () => {
     try {
@@ -223,11 +250,13 @@ export default function ChallengesPage() {
           {challenges.map((challenge) => (
             <div
               key={challenge.id}
-              className="cursor-pointer rounded-xl border border-gray-200 bg-white p-5 transition hover:border-gray-400 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-600"
-              onClick={() => router.push(`/admin/challenges/${challenge.id}`)}
+              className="rounded-xl border border-gray-200 bg-white p-5 transition hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700"
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
+                <Link
+                  href={`/admin/challenges/${challenge.id}`}
+                  className="min-w-0 flex-1"
+                >
                   <div className="flex items-center gap-2">
                     <h3 className="truncate text-base font-semibold">
                       {challenge.title}
@@ -245,13 +274,16 @@ export default function ChallengesPage() {
                     </span>
                     <span>현재 주차: {challenge.currentWeek}주</span>
                   </div>
+                </Link>
+                <div className="flex shrink-0 items-center gap-2">
+                  <CopyInviteButton inviteCode={challenge.inviteCode} />
+                  <button
+                    onClick={() => handleDelete(challenge.id, challenge.title)}
+                    className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                  >
+                    삭제
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleDelete(challenge.id, challenge.title)}
-                  className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                >
-                  삭제
-                </button>
               </div>
             </div>
           ))}

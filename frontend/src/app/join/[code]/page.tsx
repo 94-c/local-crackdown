@@ -19,6 +19,7 @@ export default function JoinPage() {
   const hasToken = !!getToken();
 
   useEffect(() => {
+    // 비로그인 시 로그인 페이지로 자동 리다이렉트
     if (!hasToken) {
       window.location.href = `/login?invite=${code}`;
       return;
@@ -65,20 +66,10 @@ export default function JoinPage() {
     }
   };
 
-  const [joining, setJoining] = useState(false);
-
-  const handleJoin = async () => {
-    if (!challenge) return;
-    setJoining(true);
-    try {
-      await apiClient.post(`/api/challenges/${challenge.id}/join`, {});
+  const handleJoin = () => {
+    if (challenge) {
       localStorage.setItem("pendingChallengeId", challenge.id);
       window.location.href = "/home";
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "참가 등록에 실패했습니다."
-      );
-      setJoining(false);
     }
   };
 
@@ -169,10 +160,9 @@ export default function JoinPage() {
         <button
           type="button"
           onClick={handleJoin}
-          disabled={joining}
-          className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+          className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
         >
-          {joining ? "참가 중..." : "참가하기"}
+          참가하기
         </button>
 
         <div className="text-center">

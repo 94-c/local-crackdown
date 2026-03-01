@@ -1,6 +1,7 @@
 package com.challenge.application.service
 
 import com.challenge.application.dto.UserResponse
+import com.challenge.domain.entity.Role
 import com.challenge.domain.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -9,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional
 class UserSearchService(
     private val userRepository: UserRepository
 ) {
-
     @Transactional(readOnly = true)
     fun searchUsers(query: String): List<UserResponse> {
         val trimmed = query.trim()
@@ -17,6 +17,7 @@ class UserSearchService(
 
         return userRepository
             .findByNicknameContainingIgnoreCaseOrEmailContainingIgnoreCase(trimmed, trimmed)
+            .filter { it.role == Role.USER }
             .map { user ->
                 UserResponse(
                     id = user.id.toString(),
