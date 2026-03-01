@@ -87,3 +87,29 @@ export interface Verification {
   verified: boolean;
   createdAt: string;
 }
+
+// Sprint 5: 벌칙 미션 + 시즌 종료
+export interface PenaltyMission {
+  id: string;
+  teamName: string;
+  weekNumber: number;
+  missionName: string;
+  description: string | null;
+  status: string;
+  verifications: PenaltyVerification[];
+}
+
+export interface PenaltyVerification {
+  id: string;
+  userNickname: string;
+  memo: string | null;
+  imageUrl: string | null;
+  approved: boolean;
+  createdAt: string;
+}
+
+export interface FinalScoreResult {
+  teamName: string;
+  totalScore: number;
+  finalRank: number;
+}
