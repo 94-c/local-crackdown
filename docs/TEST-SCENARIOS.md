@@ -99,9 +99,51 @@ curl http://localhost:8080/api/admin/test \
 ## Sprint별 시나리오 (구현 후 추가 예정)
 
 ### Sprint 1: 챌린지 + 팀 관리
-- [ ] Admin이 챌린지 생성
-- [ ] Admin이 팀 구성 (2인 1팀 배정)
-- [ ] 유저가 본인 팀 확인
+
+#### 시나리오 7: Admin 챌린지 생성 (UI)
+1. http://localhost:3000/admin/login → admin@challenge.com / admin1234!
+2. 대시보드 → "챌린지 관리" 클릭
+3. "새 챌린지 만들기" 버튼 클릭
+4. 챌린지 이름: `3월 챌린지`, 시작일/종료일 설정
+5. **기대 결과**: 챌린지 목록에 "준비중" 배지와 함께 표시
+
+#### 시나리오 8: Admin 팀 구성 (UI)
+1. Admin 로그인 → "사용자/팀" 메뉴
+2. 챌린지 선택 드롭다운에서 챌린지 선택
+3. "새 팀 만들기" → 팀명, 멤버1 ID, 멤버2 ID 입력
+4. **기대 결과**: 팀 목록에 팀원 정보와 함께 표시
+
+#### 시나리오 9: API 직접 테스트 (curl)
+```bash
+# Admin 토큰 받기
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@challenge.com","password":"admin1234!"}' | jq -r '.accessToken')
+
+# 챌린지 생성
+curl -X POST http://localhost:8080/api/admin/challenges \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"title":"3월 챌린지","description":"첫 번째 챌린지","startDate":"2026-03-02","endDate":"2026-03-30"}'
+
+# 챌린지 목록 조회
+curl http://localhost:8080/api/admin/challenges \
+  -H "Authorization: Bearer $TOKEN"
+
+# 목표 유형 조회
+curl http://localhost:8080/api/goal-types \
+  -H "Authorization: Bearer $TOKEN"
+
+# 팀 생성 (member1Id, member2Id는 실제 유저 UUID)
+curl -X POST http://localhost:8080/api/admin/teams \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"name":"팀1","challengeId":"{챌린지UUID}","member1Id":"{유저1UUID}","member2Id":"{유저2UUID}"}'
+
+# 내 팀 조회 (일반 유저 토큰으로)
+curl http://localhost:8080/api/teams/me \
+  -H "Authorization: Bearer $USER_TOKEN"
+```
 
 ### Sprint 2: 온보딩 + 인바디
 - [ ] 유저 최초 접속 시 온보딩 진입
