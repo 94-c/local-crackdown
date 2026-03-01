@@ -11,19 +11,24 @@
 
 ---
 
-## Sprint 1: 기반 엔티티 + Admin 챌린지 관리
+## Sprint 1: 기반 엔티티 + Admin 챌린지 관리 ✅
 
 ### Backend
-- [ ] Challenge 엔티티 (이름, 설명, 시작일, 종료일, 상태)
-- [ ] Team 엔티티 (챌린지 소속, 팀원 2명)
-- [ ] GoalType 엔티티 (목표 유형: 체중감량, 근육량증가 등)
-- [ ] Flyway 마이그레이션
-- [ ] Admin API: 챌린지 CRUD
-- [ ] Admin API: 팀 구성 (유저 2명 → 팀 배정)
+- [x] Challenge 엔티티 (이름, 설명, 시작일, 종료일, 상태)
+- [x] Team 엔티티 (챌린지 소속, 팀원 2명)
+- [x] GoalType 엔티티 (목표 유형: 체중감량, 근육량증가 등)
+- [x] Flyway 마이그레이션 (V4)
+- [x] Admin API: 챌린지 CRUD
+- [x] Admin API: 팀 구성 (유저 2명 → 팀 배정)
+- [x] GoalType API (인증 유저 조회)
+- [x] 유저 본인 팀 조회 API
 
 ### Frontend
-- [ ] /admin/challenges — 챌린지 생성/관리
-- [ ] /admin/users — 사용자 목록 + 팀 배정
+- [x] Admin 레이아웃 + 네비게이션
+- [x] Admin 대시보드
+- [x] /admin/challenges — 챌린지 생성/관리
+- [x] /admin/users — 사용자 목록 + 팀 배정
+- [x] 공유 TypeScript 타입 (lib/types.ts)
 
 ---
 
