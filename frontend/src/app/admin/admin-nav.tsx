@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { logout } from "@/lib/auth";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "대시보드" },
@@ -35,7 +36,7 @@ export function AdminNav() {
               className="h-8 w-auto object-contain"
             />
           </Link>
-          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+          <div className="flex flex-1 gap-1 overflow-x-auto scrollbar-hide">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
@@ -49,6 +50,20 @@ export function AdminNav() {
                 {item.label}
               </Link>
             ))}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              href="/home"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-black dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+            >
+              사용자 화면
+            </Link>
+            <button
+              onClick={logout}
+              className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+            >
+              로그아웃
+            </button>
           </div>
         </div>
       </div>

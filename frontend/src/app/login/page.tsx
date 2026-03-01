@@ -23,7 +23,7 @@ export default function LoginPage() {
         { email, password }
       );
       localStorage.setItem("token", data.accessToken);
-      window.location.href = isAdmin(data.accessToken) ? "/admin" : "/";
+      window.location.href = isAdmin(data.accessToken) ? "/admin" : "/home";
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "로그인에 실패했습니다"
