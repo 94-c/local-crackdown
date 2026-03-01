@@ -1,10 +1,18 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md space-y-8 text-center">
-        <h1 className="text-4xl font-bold tracking-tight">Challenge</h1>
+      <div className="w-full max-w-md space-y-6 text-center">
+        <Image
+          src="/images/mascot.png"
+          alt="지방단속 마스코트"
+          width={240}
+          height={240}
+          priority
+          className="mx-auto"
+        />
         <p className="text-lg text-gray-600 dark:text-gray-400">
           4주 챌린지로 목표를 달성하세요
         </p>

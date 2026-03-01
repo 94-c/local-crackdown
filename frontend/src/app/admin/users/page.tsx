@@ -1,114 +1,35 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
-import type { Challenge, Team } from "@/lib/types";
+import type { UserInfo } from "@/lib/types";
 
-export default function UsersTeamsPage() {
-  const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [selectedChallengeId, setSelectedChallengeId] = useState("");
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loadingChallenges, setLoadingChallenges] = useState(true);
-  const [loadingTeams, setLoadingTeams] = useState(false);
+export default function UsersPage() {
+  const [users, setUsers] = useState<UserInfo[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [formLoading, setFormLoading] = useState(false);
-
-  const [teamName, setTeamName] = useState("");
-  const [member1Id, setMember1Id] = useState("");
-  const [member2Id, setMember2Id] = useState("");
 
   useEffect(() => {
-    const fetchChallenges = async () => {
+    const fetchUsers = async () => {
       try {
-        const data = await apiClient.get<Challenge[]>("/api/admin/challenges");
-        setChallenges(data);
+        const data = await apiClient.get<UserInfo[]>("/api/admin/users");
+        setUsers(data);
       } catch (err) {
         setError(
           err instanceof Error
             ? err.message
-            : "챌린지 목록을 불러올 수 없습니다"
+            : "사용자 목록을 불러올 수 없습니다"
         );
       } finally {
-        setLoadingChallenges(false);
+        setLoading(false);
       }
     };
-    fetchChallenges();
+    fetchUsers();
   }, []);
-
-  const fetchTeams = useCallback(async (challengeId: string) => {
-    if (!challengeId) {
-      setTeams([]);
-      return;
-    }
-    try {
-      setLoadingTeams(true);
-      const data = await apiClient.get<Team[]>(
-        `/api/admin/teams?challengeId=${challengeId}`
-      );
-      setTeams(data);
-      setError("");
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "팀 목록을 불러올 수 없습니다"
-      );
-    } finally {
-      setLoadingTeams(false);
-    }
-  }, []);
-
-  const handleChallengeChange = (challengeId: string) => {
-    setSelectedChallengeId(challengeId);
-    setShowForm(false);
-    fetchTeams(challengeId);
-  };
-
-  const resetForm = () => {
-    setTeamName("");
-    setMember1Id("");
-    setMember2Id("");
-    setShowForm(false);
-  };
-
-  const handleCreateTeam = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedChallengeId) return;
-    setFormLoading(true);
-
-    try {
-      await apiClient.post("/api/admin/teams", {
-        name: teamName,
-        challengeId: selectedChallengeId,
-        member1Id,
-        member2Id: member2Id || null,
-      });
-      resetForm();
-      fetchTeams(selectedChallengeId);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "팀 생성에 실패했습니다"
-      );
-    } finally {
-      setFormLoading(false);
-    }
-  };
-
-  const handleDeleteTeam = async (teamId: string, name: string) => {
-    if (!confirm(`"${name}" 팀을 삭제하시겠습니까?`)) return;
-
-    try {
-      await apiClient.delete(`/api/admin/teams/${teamId}`);
-      fetchTeams(selectedChallengeId);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "팀 삭제에 실패했습니다"
-      );
-    }
-  };
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-2xl font-bold tracking-tight">사용자/팀 관리</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold tracking-tight">사용자 관리</h1>
 
       {error && (
         <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
@@ -116,180 +37,50 @@ export default function UsersTeamsPage() {
         </div>
       )}
 
-      {/* 사용자 목록 Section */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">사용자 목록</h2>
+      {loading ? (
+        <p className="text-sm text-gray-500 dark:text-gray-400">로딩 중...</p>
+      ) : users.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            사용자 목록은 챌린지 선택 후 표시됩니다
+            등록된 사용자가 없습니다.
           </p>
         </div>
-      </section>
-
-      {/* 팀 관리 Section */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">팀 관리</h2>
-
-        <div>
-          <label
-            htmlFor="challengeSelect"
-            className="block text-sm font-medium"
-          >
-            챌린지 선택
-          </label>
-          <select
-            id="challengeSelect"
-            value={selectedChallengeId}
-            onChange={(e) => handleChallengeChange(e.target.value)}
-            disabled={loadingChallenges}
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-          >
-            <option value="">
-              {loadingChallenges
-                ? "챌린지 로딩 중..."
-                : "챌린지를 선택하세요"}
-            </option>
-            {challenges.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {selectedChallengeId && (
-          <>
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                팀 목록
-              </h3>
-              <button
-                onClick={() => setShowForm(!showForm)}
-                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-              >
-                {showForm ? "취소" : "새 팀 만들기"}
-              </button>
-            </div>
-
-            {showForm && (
-              <form
-                onSubmit={handleCreateTeam}
-                className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
-              >
-                <h3 className="text-base font-semibold">새 팀</h3>
-
-                <div>
-                  <label
-                    htmlFor="teamName"
-                    className="block text-sm font-medium"
-                  >
-                    팀명
-                  </label>
-                  <input
-                    id="teamName"
-                    type="text"
-                    required
-                    value={teamName}
-                    onChange={(e) => setTeamName(e.target.value)}
-                    className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                    placeholder="팀 이름"
-                  />
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            총 {users.length}명
+          </p>
+          {users.map((user) => (
+            <div
+              key={user.id}
+              className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-base font-semibold">
+                    {user.nickname}
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    {user.email}
+                  </p>
                 </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label
-                      htmlFor="member1Id"
-                      className="block text-sm font-medium"
-                    >
-                      멤버1 ID
-                    </label>
-                    <input
-                      id="member1Id"
-                      type="text"
-                      required
-                      value={member1Id}
-                      onChange={(e) => setMember1Id(e.target.value)}
-                      className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                      placeholder="사용자 ID"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="member2Id"
-                      className="block text-sm font-medium"
-                    >
-                      멤버2 ID
-                    </label>
-                    <input
-                      id="member2Id"
-                      type="text"
-                      value={member2Id}
-                      onChange={(e) => setMember2Id(e.target.value)}
-                      className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                      placeholder="사용자 ID (선택)"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={formLoading}
-                  className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200 sm:w-auto"
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+                    user.role === "ADMIN"
+                      ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                      : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                  }`}
                 >
-                  {formLoading ? "생성 중..." : "팀 생성"}
-                </button>
-              </form>
-            )}
-
-            {loadingTeams ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                로딩 중...
+                  {user.role}
+                </span>
+              </div>
+              <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+                ID: {user.id}
               </p>
-            ) : teams.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  등록된 팀이 없습니다.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {teams.map((team) => (
-                  <div
-                    key={team.id}
-                    className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <h4 className="truncate text-base font-semibold">
-                          {team.name}
-                        </h4>
-                        <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                          <p>
-                            멤버1: {team.member1.nickname} ({team.member1.email})
-                          </p>
-                          {team.member2 && (
-                            <p>
-                              멤버2: {team.member2.nickname} (
-                              {team.member2.email})
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteTeam(team.id, team.name)}
-                        className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </section>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

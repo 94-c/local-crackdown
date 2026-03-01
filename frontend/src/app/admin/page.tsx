@@ -8,8 +8,13 @@ const ADMIN_SECTIONS = [
   },
   {
     title: "사용자 관리",
-    description: "사용자 목록 조회 및 팀 구성 관리",
+    description: "등록된 사용자 목록 조회",
     href: "/admin/users",
+  },
+  {
+    title: "팀 관리",
+    description: "챌린지별 팀 구성 및 관리",
+    href: "/admin/teams",
   },
   {
     title: "주간 마감",
