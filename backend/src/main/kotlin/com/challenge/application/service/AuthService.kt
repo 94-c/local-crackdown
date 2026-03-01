@@ -34,7 +34,10 @@ class AuthService(
             email = saved.email,
             nickname = saved.nickname,
             profileImageUrl = saved.profileImageUrl,
-            role = saved.role.name
+            role = saved.role.name,
+            gender = saved.gender,
+            birthDate = saved.birthDate,
+            height = saved.height
         )
     }
 
@@ -61,7 +64,32 @@ class AuthService(
             email = user.email,
             nickname = user.nickname,
             profileImageUrl = user.profileImageUrl,
-            role = user.role.name
+            role = user.role.name,
+            gender = user.gender,
+            birthDate = user.birthDate,
+            height = user.height
+        )
+    }
+
+    @Transactional
+    fun updateProfile(userId: String, request: UpdateProfileRequest): ProfileResponse {
+        val user = userRepository.findById(UUID.fromString(userId))
+            .orElseThrow { IllegalArgumentException("User not found") }
+
+        request.gender?.let { user.gender = it }
+        request.birthDate?.let { user.birthDate = it }
+        request.height?.let { user.height = it }
+
+        val saved = userRepository.save(user)
+        return ProfileResponse(
+            id = saved.id.toString(),
+            email = saved.email,
+            nickname = saved.nickname,
+            profileImageUrl = saved.profileImageUrl,
+            role = saved.role.name,
+            gender = saved.gender,
+            birthDate = saved.birthDate,
+            height = saved.height
         )
     }
 }

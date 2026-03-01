@@ -76,7 +76,10 @@ class TeamService(
             email = user.email,
             nickname = user.nickname,
             profileImageUrl = user.profileImageUrl,
-            role = user.role.name
+            role = user.role.name,
+            gender = user.gender,
+            birthDate = user.birthDate,
+            height = user.height
         )
     }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import type { Challenge } from "@/lib/types";
 
@@ -15,6 +16,7 @@ export default function ChallengesPage() {
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const router = useRouter();
 
   const fetchChallenges = useCallback(async () => {
     try {
@@ -221,7 +223,8 @@ export default function ChallengesPage() {
           {challenges.map((challenge) => (
             <div
               key={challenge.id}
-              className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
+              className="cursor-pointer rounded-xl border border-gray-200 bg-white p-5 transition hover:border-gray-400 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-600"
+              onClick={() => router.push(`/admin/challenges/${challenge.id}`)}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">

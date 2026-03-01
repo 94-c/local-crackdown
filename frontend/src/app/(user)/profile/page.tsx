@@ -8,6 +8,7 @@ import type {
   InBodyRecord,
 } from "@/lib/types";
 import Link from "next/link";
+import InBodyModal from "@/components/InBodyModal";
 
 export default function ProfilePage() {
   const [challengeId, setChallengeId] = useState<string | null>(null);
@@ -15,22 +16,21 @@ export default function ProfilePage() {
   const [inbodyRecords, setInbodyRecords] = useState<InBodyRecord[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
 
-  // InBody form
-  const [weight, setWeight] = useState("");
-  const [muscleMass, setMuscleMass] = useState("");
-  const [bodyFat, setBodyFat] = useState("");
-  const [formLoading, setFormLoading] = useState(false);
-  const [formError, setFormError] = useState("");
-  const [formSuccess, setFormSuccess] = useState(false);
-
-  const fetchData = useCallback(async (cId: string) => {
+  const fetchData = useCallback(async (cId: string | null) => {
     try {
+      const achievementPromise = cId
+        ? apiClient.get<Achievement[]>(`/api/goals/achievement?challengeId=${cId}`)
+        : Promise.resolve([]);
+
+      const inbodyPromise = cId
+        ? apiClient.get<InBodyRecord[]>(`/api/inbody?challengeId=${cId}`)
+        : apiClient.get<InBodyRecord[]>("/api/inbody");
+
       const [achievementData, inbodyData] = await Promise.all([
-        apiClient.get<Achievement[]>(
-          `/api/goals/achievement?challengeId=${cId}`
-        ),
-        apiClient.get<InBodyRecord[]>(`/api/inbody?challengeId=${cId}`),
+        achievementPromise,
+        inbodyPromise,
       ]);
       setAchievements(achievementData);
       setInbodyRecords(inbodyData);
@@ -50,42 +50,21 @@ export default function ProfilePage() {
           setChallengeId(cId);
           await fetchData(cId);
         } else {
-          setError("참여 중인 챌린지가 없습니다.");
-          setLoadingData(false);
+          const pendingId = localStorage.getItem("pendingChallengeId");
+          if (pendingId) setChallengeId(pendingId);
+          await fetchData(pendingId);
         }
       } catch {
-        setError("데이터를 불러오는데 실패했습니다.");
-        setLoadingData(false);
+        const pendingId = localStorage.getItem("pendingChallengeId");
+        if (pendingId) setChallengeId(pendingId);
+        await fetchData(pendingId);
       }
     };
     init();
   }, [fetchData]);
 
-  const handleInBodySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!challengeId) return;
-    setFormError("");
-    setFormSuccess(false);
-    setFormLoading(true);
-    try {
-      await apiClient.post<InBodyRecord>("/api/inbody", {
-        challengeId,
-        weight: parseFloat(weight),
-        skeletalMuscleMass: parseFloat(muscleMass),
-        bodyFatPercentage: parseFloat(bodyFat),
-      });
-      setFormSuccess(true);
-      setWeight("");
-      setMuscleMass("");
-      setBodyFat("");
-      await fetchData(challengeId);
-    } catch (err) {
-      setFormError(
-        err instanceof Error ? err.message : "인바디 등록에 실패했습니다"
-      );
-    } finally {
-      setFormLoading(false);
-    }
+  const handleModalSuccess = () => {
+    fetchData(challengeId);
   };
 
   const formatDate = (dateStr: string) => {
@@ -180,7 +159,16 @@ export default function ProfilePage() {
 
         {/* InBody Records Section */}
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold">인바디 기록</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">인바디 기록</h2>
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="rounded-lg bg-black px-4 py-2 text-sm text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+            >
+              인바디 기록 추가
+            </button>
+          </div>
           {inbodyRecords.length === 0 ? (
             <div className="rounded-xl border border-gray-200 p-6 text-center dark:border-gray-700">
               <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -197,7 +185,7 @@ export default function ProfilePage() {
                   <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
                     {formatDate(record.recordDate)}
                   </div>
-                  <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="grid grid-cols-4 gap-2 text-center">
                     <div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         체중
@@ -216,6 +204,16 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
+                        체지방량
+                      </div>
+                      <div className="text-sm font-semibold">
+                        {record.bodyFatMass != null
+                          ? `${record.bodyFatMass} kg`
+                          : "-"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
                         체지방률
                       </div>
                       <div className="text-sm font-semibold">
@@ -228,92 +226,15 @@ export default function ProfilePage() {
             </div>
           )}
         </section>
-
-        {/* InBody Input Form */}
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">인바디 추가 기록</h2>
-          <form
-            onSubmit={handleInBodySubmit}
-            className="rounded-xl border border-gray-200 p-4 dark:border-gray-700"
-          >
-            {formError && (
-              <div className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                {formError}
-              </div>
-            )}
-            {formSuccess && (
-              <div className="mb-3 rounded-lg bg-green-50 p-3 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400">
-                인바디가 성공적으로 등록되었습니다!
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <div>
-                <label
-                  htmlFor="profile-weight"
-                  className="block text-sm font-medium"
-                >
-                  체중 (kg)
-                </label>
-                <input
-                  id="profile-weight"
-                  type="number"
-                  step="0.1"
-                  required
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                  placeholder="예: 70.5"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="profile-muscle"
-                  className="block text-sm font-medium"
-                >
-                  골격근량 (kg)
-                </label>
-                <input
-                  id="profile-muscle"
-                  type="number"
-                  step="0.1"
-                  required
-                  value={muscleMass}
-                  onChange={(e) => setMuscleMass(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                  placeholder="예: 28.3"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="profile-fat"
-                  className="block text-sm font-medium"
-                >
-                  체지방률 (%)
-                </label>
-                <input
-                  id="profile-fat"
-                  type="number"
-                  step="0.1"
-                  required
-                  value={bodyFat}
-                  onChange={(e) => setBodyFat(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                  placeholder="예: 22.5"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={formLoading || !weight || !muscleMass || !bodyFat}
-              className="mt-4 w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-            >
-              {formLoading ? "저장 중..." : "인바디 기록 추가"}
-            </button>
-          </form>
-        </section>
       </div>
+
+      {/* InBody Modal */}
+      <InBodyModal
+        challengeId={challengeId}
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSuccess={handleModalSuccess}
+      />
     </main>
   );
 }

@@ -3,6 +3,7 @@ package com.challenge.application.dto
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
+import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -37,9 +38,64 @@ data class ChallengeResponse(
     val id: String,
     val title: String,
     val description: String?,
+    val inviteCode: String,
     val startDate: LocalDate,
     val endDate: LocalDate,
     val currentWeek: Int,
     val status: String,
     val createdAt: LocalDateTime
+)
+
+data class ChallengeInviteResponse(
+    val id: String,
+    val title: String,
+    val description: String?,
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val status: String
+)
+
+data class ChallengeMemberDetailResponse(
+    val userId: String,
+    val nickname: String,
+    val email: String,
+    val hasInbody: Boolean,
+    val lastInbodyDate: LocalDate?,
+    val hasGoals: Boolean
+)
+
+data class ChallengeTeamDetailResponse(
+    val teamId: String,
+    val teamName: String,
+    val members: List<ChallengeMemberDetailResponse>
+)
+
+data class ChallengeParticipantResponse(
+    val userId: String,
+    val nickname: String,
+    val email: String,
+    val joinedAt: LocalDateTime,
+    val hasTeam: Boolean,
+    val hasInbody: Boolean,
+    val hasGoals: Boolean
+)
+
+data class ChallengeDetailWithMembersResponse(
+    val challenge: ChallengeResponse,
+    val teams: List<ChallengeTeamDetailResponse>,
+    val totalTeams: Int,
+    val totalMembers: Int,
+    val unassignedParticipants: List<ChallengeParticipantResponse>
+)
+
+data class MemberDetailResponse(
+    val userId: String,
+    val nickname: String,
+    val email: String,
+    val gender: String?,
+    val birthDate: LocalDate?,
+    val height: BigDecimal?,
+    val inbodyRecords: List<InBodyRecordResponse>,
+    val goals: List<UserGoalResponse>,
+    val achievements: List<AchievementResponse>
 )

@@ -1,6 +1,8 @@
 package com.challenge.domain.entity
 
 import jakarta.persistence.*
+import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -26,6 +28,15 @@ class User(
 
     @Column(name = "profile_image_url")
     var profileImageUrl: String? = null,
+
+    @Column(length = 10)
+    var gender: String? = null,
+
+    @Column(name = "birth_date")
+    var birthDate: LocalDate? = null,
+
+    @Column(precision = 5, scale = 1)
+    var height: BigDecimal? = null,
 
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),

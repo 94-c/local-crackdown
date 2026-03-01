@@ -27,6 +27,9 @@ class Challenge(
     @Column(name = "current_week", nullable = false)
     var currentWeek: Int = 0,
 
+    @Column(name = "invite_code", nullable = false, unique = true, length = 8)
+    var inviteCode: String = generateInviteCode(),
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     var status: ChallengeStatus = ChallengeStatus.PREPARING,
@@ -36,4 +39,11 @@ class Challenge(
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
-)
+) {
+    companion object {
+        fun generateInviteCode(): String {
+            val chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+            return (1..8).map { chars.random() }.joinToString("")
+        }
+    }
+}

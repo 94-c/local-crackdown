@@ -2,6 +2,7 @@ export interface Challenge {
   id: string;
   title: string;
   description: string | null;
+  inviteCode: string;
   startDate: string;
   endDate: string;
   currentWeek: number;
@@ -24,6 +25,9 @@ export interface UserInfo {
   nickname: string;
   profileImageUrl: string | null;
   role: string;
+  gender: string | null;
+  birthDate: string | null;
+  height: number | null;
 }
 
 export interface GoalType {
@@ -39,6 +43,7 @@ export interface InBodyRecord {
   weight: number;
   skeletalMuscleMass: number;
   bodyFatPercentage: number;
+  bodyFatMass: number | null;
   recordDate: string;
   createdAt: string;
 }
@@ -128,4 +133,24 @@ export interface FinalScoreResult {
   teamName: string;
   totalScore: number;
   finalRank: number;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  nickname: string;
+  profileImageUrl: string | null;
+  role: string;
+  gender: string | null;
+  birthDate: string | null;
+  height: number | null;
+}
+
+export interface ChallengeInvite {
+  id: string;
+  title: string;
+  description: string | null;
+  startDate: string;
+  endDate: string;
+  status: string;
 }

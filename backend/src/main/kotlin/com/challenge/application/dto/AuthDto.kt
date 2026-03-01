@@ -3,6 +3,8 @@ package com.challenge.application.dto
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
+import java.math.BigDecimal
+import java.time.LocalDate
 
 data class SignUpRequest(
     @field:Email
@@ -37,7 +39,10 @@ data class UserResponse(
     val email: String,
     val nickname: String,
     val profileImageUrl: String?,
-    val role: String
+    val role: String,
+    val gender: String?,
+    val birthDate: LocalDate?,
+    val height: BigDecimal?
 )
 
 data class MeResponse(
@@ -45,5 +50,25 @@ data class MeResponse(
     val email: String,
     val nickname: String,
     val profileImageUrl: String?,
-    val role: String
+    val role: String,
+    val gender: String?,
+    val birthDate: LocalDate?,
+    val height: BigDecimal?
+)
+
+data class UpdateProfileRequest(
+    val gender: String? = null,
+    val birthDate: LocalDate? = null,
+    val height: BigDecimal? = null
+)
+
+data class ProfileResponse(
+    val id: String,
+    val email: String,
+    val nickname: String,
+    val profileImageUrl: String?,
+    val role: String,
+    val gender: String?,
+    val birthDate: LocalDate?,
+    val height: BigDecimal?
 )
