@@ -59,3 +59,31 @@ export interface Achievement {
   currentValue: number;
   achievementRate: number;
 }
+
+export interface MissionTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  unit: string;
+}
+
+export interface TeamMission {
+  id: string;
+  teamName: string;
+  weekNumber: number;
+  missionTemplateName: string;
+  unit: string;
+  targetValue: number;
+  currentValue: number;
+  status: string;
+  verifications: Verification[];
+}
+
+export interface Verification {
+  id: string;
+  userNickname: string;
+  imageUrl: string | null;
+  memo: string | null;
+  verified: boolean;
+  createdAt: string;
+}
