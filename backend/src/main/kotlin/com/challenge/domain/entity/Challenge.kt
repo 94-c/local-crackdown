@@ -18,6 +18,9 @@ class Challenge(
     @Column(columnDefinition = "TEXT")
     var description: String? = null,
 
+    @Column(name = "invite_code", nullable = false, unique = true, length = 8)
+    val inviteCode: String = generateInviteCode(),
+
     @Column(name = "start_date", nullable = false)
     var startDate: LocalDate,
 
@@ -36,4 +39,14 @@ class Challenge(
 
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
-)
+) {
+    companion object {
+        private val ALPHANUMERIC = ('A'..'Z') + ('a'..'z') + ('0'..'9')
+
+        fun generateInviteCode(): String {
+            return (1..8)
+                .map { ALPHANUMERIC.random() }
+                .joinToString("")
+        }
+    }
+}

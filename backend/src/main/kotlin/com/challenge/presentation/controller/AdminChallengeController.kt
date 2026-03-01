@@ -1,5 +1,6 @@
 package com.challenge.presentation.controller
 
+import com.challenge.application.dto.ChallengeDetailWithMembersResponse
 import com.challenge.application.dto.ChallengeResponse
 import com.challenge.application.dto.CreateChallengeRequest
 import com.challenge.application.dto.UpdateChallengeRequest
@@ -43,5 +44,10 @@ class AdminChallengeController(
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteChallenge(@PathVariable id: UUID) {
         challengeService.deleteChallenge(id)
+    }
+
+    @GetMapping("/{id}/members")
+    fun getChallengeMembers(@PathVariable id: UUID): ChallengeDetailWithMembersResponse {
+        return challengeService.getChallengeWithMembers(id)
     }
 }

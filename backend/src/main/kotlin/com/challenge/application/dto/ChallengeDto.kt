@@ -37,9 +37,41 @@ data class ChallengeResponse(
     val id: String,
     val title: String,
     val description: String?,
+    val inviteCode: String,
     val startDate: LocalDate,
     val endDate: LocalDate,
     val currentWeek: Int,
     val status: String,
     val createdAt: LocalDateTime
+)
+
+data class ChallengeInviteResponse(
+    val id: String,
+    val title: String,
+    val description: String?,
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val status: String
+)
+
+data class ChallengeMemberDetailResponse(
+    val userId: String,
+    val nickname: String,
+    val email: String,
+    val hasInbody: Boolean,
+    val lastInbodyDate: LocalDate?,
+    val hasGoals: Boolean
+)
+
+data class ChallengeTeamDetailResponse(
+    val teamId: String,
+    val teamName: String,
+    val members: List<ChallengeMemberDetailResponse>
+)
+
+data class ChallengeDetailWithMembersResponse(
+    val challenge: ChallengeResponse,
+    val teams: List<ChallengeTeamDetailResponse>,
+    val totalTeams: Int,
+    val totalMembers: Int
 )

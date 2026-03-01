@@ -8,6 +8,8 @@ import com.challenge.domain.repository.InBodyRecordRepository
 import com.challenge.domain.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.UUID
 
 @Service
@@ -27,12 +29,22 @@ class InBodyService(
         challengeRepository.findById(challengeUuid)
             .orElseThrow { IllegalArgumentException("Challenge not found") }
 
+        require(request.skeletalMuscleMass + request.bodyFatMass <= request.weight) {
+            "Skeletal muscle mass + body fat mass cannot exceed weight"
+        }
+
+        val bodyFatPercentage = request.bodyFatMass
+            .divide(request.weight, 4, RoundingMode.HALF_UP)
+            .multiply(BigDecimal(100))
+            .setScale(2, RoundingMode.HALF_UP)
+
         val record = InBodyRecord(
             userId = userUuid,
             challengeId = challengeUuid,
             weight = request.weight,
             skeletalMuscleMass = request.skeletalMuscleMass,
-            bodyFatPercentage = request.bodyFatPercentage,
+            bodyFatPercentage = bodyFatPercentage,
+            bodyFatMass = request.bodyFatMass,
             recordDate = request.recordDate
         )
         val saved = inBodyRecordRepository.save(record)
@@ -65,6 +77,7 @@ class InBodyService(
             weight = record.weight,
             skeletalMuscleMass = record.skeletalMuscleMass,
             bodyFatPercentage = record.bodyFatPercentage,
+            bodyFatMass = record.bodyFatMass,
             recordDate = record.recordDate,
             createdAt = record.createdAt
         )

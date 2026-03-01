@@ -8,6 +8,7 @@ import com.challenge.infrastructure.security.JwtProvider
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Service
@@ -29,13 +30,7 @@ class AuthService(
         )
         val saved = userRepository.save(user)
 
-        return UserResponse(
-            id = saved.id.toString(),
-            email = saved.email,
-            nickname = saved.nickname,
-            profileImageUrl = saved.profileImageUrl,
-            role = saved.role.name
-        )
+        return toUserResponse(saved)
     }
 
     @Transactional(readOnly = true)
@@ -56,12 +51,67 @@ class AuthService(
         val user = userRepository.findById(UUID.fromString(userId))
             .orElseThrow { IllegalArgumentException("User not found") }
 
+        return toMeResponse(user)
+    }
+
+    @Transactional(readOnly = true)
+    fun getProfile(userId: String): ProfileResponse {
+        val user = userRepository.findById(UUID.fromString(userId))
+            .orElseThrow { IllegalArgumentException("User not found") }
+
+        return toProfileResponse(user)
+    }
+
+    @Transactional
+    fun updateProfile(userId: String, request: UpdateProfileRequest): ProfileResponse {
+        val user = userRepository.findById(UUID.fromString(userId))
+            .orElseThrow { IllegalArgumentException("User not found") }
+
+        request.gender?.let { user.gender = it }
+        request.birthDate?.let { user.birthDate = it }
+        request.height?.let { user.height = it }
+        user.updatedAt = LocalDateTime.now()
+
+        val saved = userRepository.save(user)
+        return toProfileResponse(saved)
+    }
+
+    private fun toUserResponse(user: User): UserResponse {
+        return UserResponse(
+            id = user.id.toString(),
+            email = user.email,
+            nickname = user.nickname,
+            profileImageUrl = user.profileImageUrl,
+            role = user.role.name,
+            gender = user.gender,
+            birthDate = user.birthDate,
+            height = user.height
+        )
+    }
+
+    private fun toMeResponse(user: User): MeResponse {
         return MeResponse(
             id = user.id.toString(),
             email = user.email,
             nickname = user.nickname,
             profileImageUrl = user.profileImageUrl,
-            role = user.role.name
+            role = user.role.name,
+            gender = user.gender,
+            birthDate = user.birthDate,
+            height = user.height
+        )
+    }
+
+    private fun toProfileResponse(user: User): ProfileResponse {
+        return ProfileResponse(
+            id = user.id.toString(),
+            email = user.email,
+            nickname = user.nickname,
+            profileImageUrl = user.profileImageUrl,
+            role = user.role.name,
+            gender = user.gender,
+            birthDate = user.birthDate,
+            height = user.height
         )
     }
 }

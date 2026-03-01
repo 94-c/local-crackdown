@@ -28,6 +28,9 @@ class InBodyRecord(
     @Column(name = "body_fat_percentage", nullable = false, precision = 5, scale = 2)
     var bodyFatPercentage: BigDecimal,
 
+    @Column(name = "body_fat_mass", precision = 5, scale = 2)
+    var bodyFatMass: BigDecimal? = null,
+
     @Column(name = "record_date", nullable = false)
     var recordDate: LocalDate,
 
