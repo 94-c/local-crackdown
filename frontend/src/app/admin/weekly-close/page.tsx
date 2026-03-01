@@ -3,8 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { Challenge, WeeklyResult } from "@/lib/types";
+import { LoadingSkeleton, ErrorAlert, EmptyState, useToast } from "@/components/ui";
 
 export default function WeeklyClosePage() {
+  const toast = useToast();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [selectedChallengeId, setSelectedChallengeId] = useState("");
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(
@@ -14,7 +16,6 @@ export default function WeeklyClosePage() {
   const [loading, setLoading] = useState(true);
   const [closing, setClosing] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const fetchChallenges = useCallback(async () => {
     try {
@@ -40,7 +41,6 @@ export default function WeeklyClosePage() {
     setSelectedChallenge(found || null);
     setResults([]);
     setError("");
-    setSuccess("");
   }, [selectedChallengeId, challenges]);
 
   const handleCloseWeek = async () => {
@@ -61,7 +61,6 @@ export default function WeeklyClosePage() {
 
     setClosing(true);
     setError("");
-    setSuccess("");
 
     try {
       const data = await apiClient.post<WeeklyResult[]>(
@@ -72,7 +71,7 @@ export default function WeeklyClosePage() {
         }
       );
       setResults(data);
-      setSuccess(`${weekNumber}주차 마감이 완료되었습니다`);
+      toast.success(`${weekNumber}주차 마감이 완료되었습니다.`);
       // 챌린지 목록 새로고침 (currentWeek 업데이트 반영)
       fetchChallenges();
     } catch (err) {
@@ -86,8 +85,9 @@ export default function WeeklyClosePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-sm text-gray-500 dark:text-gray-400">로딩 중...</p>
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">주간 마감</h1>
+        <LoadingSkeleton variant="list" count={3} />
       </div>
     );
   }
@@ -97,15 +97,7 @@ export default function WeeklyClosePage() {
       <h1 className="text-2xl font-bold tracking-tight">주간 마감</h1>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="rounded-lg bg-green-50 p-3 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400">
-          {success}
-        </div>
+        <ErrorAlert message={error} onRetry={fetchChallenges} onDismiss={() => setError("")} />
       )}
 
       {/* 챌린지 선택 */}

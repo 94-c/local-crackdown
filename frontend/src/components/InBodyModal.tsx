@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { apiClient } from "@/lib/api-client";
+import { ErrorAlert, FormField } from "@/components/ui";
+import { validateNumber } from "@/lib/validation";
 import type { InBodyRecord } from "@/lib/types";
 
 interface InBodyModalProps {
@@ -25,6 +27,7 @@ export default function InBodyModal({
   const [fatMass, setFatMass] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
 
   const fatPercentage =
     weight && fatMass
@@ -92,86 +95,86 @@ export default function InBodyModal({
         <h2 className="text-xl font-bold">인바디 기록 추가</h2>
 
         {error && (
-          <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-            {error}
+          <div className="mt-4">
+            <ErrorAlert message={error} onDismiss={() => setError("")} />
           </div>
         )}
 
         <div className="mt-4 space-y-4">
-          <div>
-            <label htmlFor="modal-date" className="block text-sm font-medium">
-              측정일
-            </label>
+          <FormField label="측정일">
             <input
-              id="modal-date"
               type="date"
               value={recordDate}
               onChange={(e) => setRecordDate(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+              className="block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label
-              htmlFor="modal-weight"
-              className="block text-sm font-medium"
-            >
-              체중 (kg)
-            </label>
+          <FormField label="체중 (kg)" error={fieldErrors.weight ?? undefined} required>
             <input
-              id="modal-weight"
               type="number"
               step="0.1"
               required
               value={weight}
               onChange={(e) => setWeight(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+              onBlur={() =>
+                setFieldErrors((prev) => ({
+                  ...prev,
+                  weight: validateNumber(weight, "체중", { min: 30, max: 200 }),
+                }))
+              }
+              className={`block w-full rounded-lg border px-4 py-3 focus:outline-none dark:bg-gray-900 ${
+                fieldErrors.weight
+                  ? "border-red-500 focus:border-red-500"
+                  : "border-gray-300 focus:border-black dark:border-gray-700 dark:focus:border-white"
+              }`}
               placeholder="예: 70.5"
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label
-              htmlFor="modal-muscle"
-              className="block text-sm font-medium"
-            >
-              골격근량 (kg)
-            </label>
+          <FormField label="골격근량 (kg)" error={fieldErrors.muscleMass ?? undefined} required>
             <input
-              id="modal-muscle"
               type="number"
               step="0.1"
               required
               value={muscleMass}
               onChange={(e) => setMuscleMass(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+              onBlur={() =>
+                setFieldErrors((prev) => ({
+                  ...prev,
+                  muscleMass: validateNumber(muscleMass, "골격근량", { min: 10, max: 60 }),
+                }))
+              }
+              className={`block w-full rounded-lg border px-4 py-3 focus:outline-none dark:bg-gray-900 ${
+                fieldErrors.muscleMass
+                  ? "border-red-500 focus:border-red-500"
+                  : "border-gray-300 focus:border-black dark:border-gray-700 dark:focus:border-white"
+              }`}
               placeholder="예: 28.3"
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label
-              htmlFor="modal-fatmass"
-              className="block text-sm font-medium"
-            >
-              체지방량 (kg)
-            </label>
+          <FormField label="체지방량 (kg)" error={fieldErrors.fatMass ?? undefined} required hint={fatPercentage ? `체지방률: ${fatPercentage}%` : undefined}>
             <input
-              id="modal-fatmass"
               type="number"
               step="0.1"
               required
               value={fatMass}
               onChange={(e) => setFatMass(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+              onBlur={() =>
+                setFieldErrors((prev) => ({
+                  ...prev,
+                  fatMass: validateNumber(fatMass, "체지방량", { min: 1, max: 100 }),
+                }))
+              }
+              className={`block w-full rounded-lg border px-4 py-3 focus:outline-none dark:bg-gray-900 ${
+                fieldErrors.fatMass
+                  ? "border-red-500 focus:border-red-500"
+                  : "border-gray-300 focus:border-black dark:border-gray-700 dark:focus:border-white"
+              }`}
               placeholder="예: 15.2"
             />
-            {fatPercentage && (
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                체지방률: {fatPercentage}%
-              </p>
-            )}
-          </div>
+          </FormField>
         </div>
 
         <div className="mt-6 flex gap-3">

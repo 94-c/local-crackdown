@@ -4,8 +4,10 @@ import { useEffect, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { Challenge, Team } from "@/lib/types";
 import UserSearchDropdown from "@/components/UserSearchDropdown";
+import { LoadingSkeleton, ErrorAlert, EmptyState, useToast } from "@/components/ui";
 
 export default function TeamsPage() {
+  const toast = useToast();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [selectedChallengeId, setSelectedChallengeId] = useState("");
   const [teams, setTeams] = useState<Team[]>([]);
@@ -14,6 +16,7 @@ export default function TeamsPage() {
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
+  const [autoAssignLoading, setAutoAssignLoading] = useState(false);
 
   const [teamName, setTeamName] = useState("");
   const [member1, setMember1] = useState<{
@@ -91,6 +94,7 @@ export default function TeamsPage() {
         member1Id: member1.id,
         member2Id: member2?.id || null,
       });
+      toast.success("팀이 생성되었습니다.");
       resetForm();
       fetchTeams(selectedChallengeId);
     } catch (err) {
@@ -107,6 +111,7 @@ export default function TeamsPage() {
 
     try {
       await apiClient.delete(`/api/admin/teams/${teamId}`);
+      toast.success("팀이 삭제되었습니다.");
       fetchTeams(selectedChallengeId);
     } catch (err) {
       setError(
@@ -115,14 +120,34 @@ export default function TeamsPage() {
     }
   };
 
+  const handleAutoAssign = async () => {
+    if (!selectedChallengeId) return;
+    if (!confirm("승인된 참여자를 자동으로 팀에 배정하시겠습니까?")) return;
+
+    setAutoAssignLoading(true);
+    setError("");
+    try {
+      const result = await apiClient.post<{ createdTeams: number }>(
+        `/api/admin/teams/auto-assign?challengeId=${selectedChallengeId}`,
+        {}
+      );
+      toast.success(`자동 팀 구성 완료: ${result.createdTeams}개 팀이 생성되었습니다.`);
+      fetchTeams(selectedChallengeId);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "자동 팀 구성에 실패했습니다"
+      );
+    } finally {
+      setAutoAssignLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">팀 관리</h1>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-          {error}
-        </div>
+        <ErrorAlert message={error} onDismiss={() => setError("")} />
       )}
 
       <div>
@@ -158,12 +183,21 @@ export default function TeamsPage() {
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
               팀 목록
             </h3>
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-            >
-              {showForm ? "취소" : "새 팀 만들기"}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleAutoAssign}
+                disabled={autoAssignLoading}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800"
+              >
+                {autoAssignLoading ? "배정 중..." : "자동 팀 구성"}
+              </button>
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+              >
+                {showForm ? "취소" : "새 팀 만들기"}
+              </button>
+            </div>
           </div>
 
           {showForm && (
@@ -227,15 +261,12 @@ export default function TeamsPage() {
           )}
 
           {loadingTeams ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              로딩 중...
-            </p>
+            <LoadingSkeleton variant="card" count={3} />
           ) : teams.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                등록된 팀이 없습니다.
-              </p>
-            </div>
+            <EmptyState
+              title="등록된 팀이 없습니다"
+              description="새 팀 만들기 버튼을 눌러 팀을 구성하세요."
+            />
           ) : (
             <div className="space-y-3">
               {teams.map((team) => (

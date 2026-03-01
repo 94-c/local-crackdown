@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { getToken } from "@/lib/auth";
+import { LoadingSkeleton, ErrorAlert } from "@/components/ui";
 import type { ChallengeInvite } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
@@ -14,6 +15,7 @@ export default function JoinPage() {
 
   const [challenge, setChallenge] = useState<ChallengeInvite | null>(null);
   const [loading, setLoading] = useState(true);
+  const [joining, setJoining] = useState(false);
   const [error, setError] = useState("");
 
   const hasToken = !!getToken();
@@ -66,17 +68,34 @@ export default function JoinPage() {
     }
   };
 
-  const handleJoin = () => {
-    if (challenge) {
+  const handleJoin = async () => {
+    if (!challenge) return;
+    setJoining(true);
+    try {
+      const result = await apiClient.post<{ status: string }>(
+        `/api/challenges/${challenge.id}/join`,
+        {}
+      );
       localStorage.setItem("pendingChallengeId", challenge.id);
-      window.location.href = "/home";
+      if (result.status === "APPROVED") {
+        window.location.href = "/onboarding";
+      } else {
+        window.location.href = "/home";
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "참가 등록에 실패했습니다."
+      );
+      setJoining(false);
     }
   };
 
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-gray-500 dark:text-gray-400">불러오는 중...</p>
+        <div className="w-full max-w-lg">
+          <LoadingSkeleton variant="card" />
+        </div>
       </main>
     );
   }
@@ -92,9 +111,7 @@ export default function JoinPage() {
             height={100}
             className="mx-auto"
           />
-          <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-            {error}
-          </div>
+          <ErrorAlert message={error} />
           <Link
             href="/"
             className="inline-block text-sm text-gray-500 underline hover:text-black dark:text-gray-400 dark:hover:text-white"
@@ -160,9 +177,10 @@ export default function JoinPage() {
         <button
           type="button"
           onClick={handleJoin}
-          className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+          disabled={joining}
+          className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
         >
-          참가하기
+          {joining ? "참가 중..." : "참가하기"}
         </button>
 
         <div className="text-center">

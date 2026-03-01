@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
 import type { Challenge } from "@/lib/types";
+import { LoadingSkeleton, ErrorAlert, EmptyState, useToast } from "@/components/ui";
 
 interface ChallengeMemberDetail {
   userId: string;
@@ -29,6 +30,7 @@ interface ChallengeDetailWithMembers {
 }
 
 export default function ChallengeDetailPage() {
+  const toast = useToast();
   const params = useParams();
   const id = params.id as string;
 
@@ -96,6 +98,7 @@ export default function ChallengeDetailPage() {
         startDate: editStartDate,
         endDate: editEndDate,
       });
+      toast.success("챌린지가 수정되었습니다.");
       setEditing(false);
       await fetchChallenge();
       setError("");
@@ -152,7 +155,7 @@ export default function ChallengeDetailPage() {
         >
           &larr; 챌린지 목록
         </Link>
-        <p className="text-sm text-gray-500 dark:text-gray-400">로딩 중...</p>
+        <LoadingSkeleton variant="form" />
       </div>
     );
   }
@@ -166,9 +169,7 @@ export default function ChallengeDetailPage() {
         >
           &larr; 챌린지 목록
         </Link>
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-          챌린지를 찾을 수 없습니다.
-        </div>
+        <ErrorAlert message="챌린지를 찾을 수 없습니다." />
       </div>
     );
   }
@@ -184,9 +185,7 @@ export default function ChallengeDetailPage() {
       </Link>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-          {error}
-        </div>
+        <ErrorAlert message={error} onRetry={fetchChallenge} onDismiss={() => setError("")} />
       )}
 
       {/* Section 1: 기본 정보 */}
@@ -346,11 +345,10 @@ export default function ChallengeDetailPage() {
         </h2>
 
         {!memberData || memberData.teams.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              참여 중인 팀이 없습니다.
-            </p>
-          </div>
+          <EmptyState
+            title="참여 중인 팀이 없습니다"
+            description="팀 관리 페이지에서 팀을 구성하세요."
+          />
         ) : (
           <div className="space-y-3">
             {memberData.teams.map((team) => (

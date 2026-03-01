@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { apiClient } from "@/lib/api-client";
+import { ErrorAlert, FormField } from "@/components/ui";
+import { validateEmail, validatePassword } from "@/lib/validation";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -10,6 +12,7 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,41 +52,46 @@ export default function AdminLoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-              {error}
-            </div>
-          )}
+          {error && <ErrorAlert message={error} onDismiss={() => setError("")} />}
 
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium">
-              이메일
-            </label>
+          <FormField label="이메일" error={fieldErrors.email ?? undefined} required>
             <input
-              id="email"
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+              onBlur={() =>
+                setFieldErrors((prev) => ({ ...prev, email: validateEmail(email) }))
+              }
+              className={`block w-full rounded-lg border px-4 py-3 focus:outline-none dark:bg-gray-900 ${
+                fieldErrors.email
+                  ? "border-red-500 focus:border-red-500"
+                  : "border-gray-300 focus:border-black dark:border-gray-700 dark:focus:border-white"
+              }`}
               placeholder="admin@example.com"
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium">
-              비밀번호
-            </label>
+          <FormField label="비밀번호" error={fieldErrors.password ?? undefined} required>
             <input
-              id="password"
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+              onBlur={() =>
+                setFieldErrors((prev) => ({
+                  ...prev,
+                  password: validatePassword(password),
+                }))
+              }
+              className={`block w-full rounded-lg border px-4 py-3 focus:outline-none dark:bg-gray-900 ${
+                fieldErrors.password
+                  ? "border-red-500 focus:border-red-500"
+                  : "border-gray-300 focus:border-black dark:border-gray-700 dark:focus:border-white"
+              }`}
               placeholder="••••••••"
             />
-          </div>
+          </FormField>
 
           <button
             type="submit"

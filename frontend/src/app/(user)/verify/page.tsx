@@ -3,8 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { Team, TeamMission, Verification } from "@/lib/types";
+import { LoadingSkeleton, ErrorAlert, EmptyState, ProgressBar, useToast } from "@/components/ui";
 
 export default function VerifyPage() {
+  const toast = useToast();
   const [team, setTeam] = useState<Team | null>(null);
   const [mission, setMission] = useState<TeamMission | null>(null);
   const [loading, setLoading] = useState(true);
@@ -14,7 +16,6 @@ export default function VerifyPage() {
   const [memo, setMemo] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const weekNumber = 1;
 
@@ -59,7 +60,6 @@ export default function VerifyPage() {
     if (!mission) return;
 
     setSubmitError("");
-    setSubmitSuccess(false);
     setSubmitLoading(true);
     try {
       const newVerification = await apiClient.post<Verification>(
@@ -78,7 +78,7 @@ export default function VerifyPage() {
         };
       });
       setMemo("");
-      setSubmitSuccess(true);
+      toast.success("인증이 등록되었습니다!");
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "인증 등록에 실패했습니다."
@@ -100,8 +100,9 @@ export default function VerifyPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-sm text-gray-500 dark:text-gray-400">로딩 중...</p>
+      <div className="space-y-6">
+        <div className="h-7 w-24 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
+        <LoadingSkeleton variant="form" count={1} />
       </div>
     );
   }
@@ -111,21 +112,14 @@ export default function VerifyPage() {
       <h1 className="text-xl font-bold">미션 인증</h1>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-          {error}
-        </div>
+        <ErrorAlert message={error} />
       )}
 
       {team && !mission && (
-        <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
-          <p className="text-2xl">📋</p>
-          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-            이번 주 팀 미션이 아직 없습니다.
-          </p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-            팀 탭에서 먼저 미션을 생성해주세요.
-          </p>
-        </div>
+        <EmptyState
+          title="이번 주 팀 미션이 없습니다"
+          description="팀 탭에서 먼저 미션을 생성해주세요."
+        />
       )}
 
       {mission && (
@@ -155,31 +149,24 @@ export default function VerifyPage() {
             <h2 className="mt-3 text-lg font-bold">
               {mission.missionTemplateName}
             </h2>
-            <div className="mt-2 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-              <span>
-                현재 {mission.currentValue} / {mission.targetValue}{" "}
-                {mission.unit}
-              </span>
-              <span className="font-medium text-black dark:text-white">
-                {mission.targetValue > 0
+            <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              현재 {mission.currentValue} / {mission.targetValue}{" "}
+              {mission.unit}
+            </div>
+            <ProgressBar
+              value={
+                mission.targetValue > 0
                   ? Math.min(
                       Math.round(
                         (mission.currentValue / mission.targetValue) * 100
                       ),
                       100
                     )
-                  : 0}
-                %
-              </span>
-            </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-              <div
-                className="h-full rounded-full bg-black transition-all dark:bg-white"
-                style={{
-                  width: `${mission.targetValue > 0 ? Math.min(Math.round((mission.currentValue / mission.targetValue) * 100), 100) : 0}%`,
-                }}
-              />
-            </div>
+                  : 0
+              }
+              showLabel
+              className="mt-2"
+            />
           </div>
 
           {/* Verification Form */}
@@ -194,14 +181,7 @@ export default function VerifyPage() {
               className="mt-4 space-y-4"
             >
               {submitError && (
-                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                  {submitError}
-                </div>
-              )}
-              {submitSuccess && (
-                <div className="rounded-lg bg-green-50 p-3 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400">
-                  인증이 등록되었습니다!
-                </div>
+                <ErrorAlert message={submitError} />
               )}
 
               <div>
@@ -246,11 +226,10 @@ export default function VerifyPage() {
             </h3>
 
             {!mission.verifications || mission.verifications.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  아직 인증 기록이 없습니다.
-                </p>
-              </div>
+              <EmptyState
+                title="아직 인증 기록이 없습니다"
+                description="위 폼에서 미션 인증을 등록해보세요."
+              />
             ) : (
               mission.verifications.map((v) => (
                 <div

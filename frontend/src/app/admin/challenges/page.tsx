@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
 import type { Challenge } from "@/lib/types";
+import { LoadingSkeleton, ErrorAlert, EmptyState, useToast } from "@/components/ui";
 
 function CopyInviteButton({ inviteCode }: { inviteCode: string }) {
   const [copied, setCopied] = useState(false);
@@ -33,6 +34,7 @@ function CopyInviteButton({ inviteCode }: { inviteCode: string }) {
 }
 
 export default function ChallengesPage() {
+  const toast = useToast();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -83,6 +85,7 @@ export default function ChallengesPage() {
         startDate,
         endDate,
       });
+      toast.success("챌린지가 생성되었습니다.");
       resetForm();
       fetchChallenges();
     } catch (err) {
@@ -99,6 +102,7 @@ export default function ChallengesPage() {
 
     try {
       await apiClient.delete(`/api/admin/challenges/${id}`);
+      toast.success("챌린지가 삭제되었습니다.");
       fetchChallenges();
     } catch (err) {
       setError(
@@ -143,9 +147,7 @@ export default function ChallengesPage() {
       </div>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-          {error}
-        </div>
+        <ErrorAlert message={error} onRetry={fetchChallenges} onDismiss={() => setError("")} />
       )}
 
       {showForm && (
@@ -236,15 +238,12 @@ export default function ChallengesPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          로딩 중...
-        </p>
+        <LoadingSkeleton variant="card" count={3} />
       ) : challenges.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
-          <p className="text-gray-500 dark:text-gray-400">
-            등록된 챌린지가 없습니다.
-          </p>
-        </div>
+        <EmptyState
+          title="등록된 챌린지가 없습니다"
+          description="새 챌린지 만들기 버튼을 눌러 첫 챌린지를 생성하세요."
+        />
       ) : (
         <div className="space-y-3">
           {challenges.map((challenge) => (

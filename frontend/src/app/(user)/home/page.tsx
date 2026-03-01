@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import { logout } from "@/lib/auth";
 import type { Team, Achievement, UserWeeklyResult } from "@/lib/types";
 import Image from "next/image";
 import Link from "next/link";
+import { LoadingSkeleton, ErrorAlert, EmptyState, ProgressBar } from "@/components/ui";
 
 export default function HomePage() {
   const [team, setTeam] = useState<Team | null>(null);
@@ -14,47 +15,63 @@ export default function HomePage() {
     null
   );
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [nickname, setNickname] = useState("");
+  const [pendingChallengeId, setPendingChallengeId] = useState<string | null>(
+    null
+  );
+
+  const fetchData = useCallback(async () => {
+    setError("");
+    setLoading(true);
+    try {
+      const me = await apiClient.get<{ nickname: string }>("/api/auth/me");
+      setNickname(me.nickname);
+
+      const teams = await apiClient.get<Team[]>("/api/teams/me");
+      if (teams.length > 0) {
+        setTeam(teams[0]);
+        // pendingChallengeId가 있으면 팀 배정 후이므로 제거
+        localStorage.removeItem("pendingChallengeId");
+
+        const achData = await apiClient.get<Achievement[]>(
+          `/api/goals/achievement?challengeId=${teams[0].challengeId}`
+        );
+        setAchievements(achData);
+
+        // 최신 주간 결과 가져오기
+        try {
+          const weeklyResults = await apiClient.get<UserWeeklyResult[]>(
+            `/api/weekly-results/me?challengeId=${teams[0].challengeId}`
+          );
+          if (weeklyResults.length > 0) {
+            setLatestResult(weeklyResults[weeklyResults.length - 1]);
+          }
+        } catch {
+          // 주간 결과가 아직 없을 수 있음
+        }
+      } else {
+        // 팀이 없으면 pendingChallengeId 확인
+        const pending = localStorage.getItem("pendingChallengeId");
+        if (pending) {
+          setPendingChallengeId(pending);
+        }
+      }
+    } catch {
+      setError("데이터를 불러오는데 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const me = await apiClient.get<{ nickname: string }>("/api/auth/me");
-        setNickname(me.nickname);
-
-        const teams = await apiClient.get<Team[]>("/api/teams/me");
-        if (teams.length > 0) {
-          setTeam(teams[0]);
-          const achData = await apiClient.get<Achievement[]>(
-            `/api/goals/achievement?challengeId=${teams[0].challengeId}`
-          );
-          setAchievements(achData);
-
-          // 최신 주간 결과 가져오기
-          try {
-            const weeklyResults = await apiClient.get<UserWeeklyResult[]>(
-              `/api/weekly-results/me?challengeId=${teams[0].challengeId}`
-            );
-            if (weeklyResults.length > 0) {
-              setLatestResult(weeklyResults[weeklyResults.length - 1]);
-            }
-          } catch {
-            // 주간 결과가 아직 없을 수 있음
-          }
-        }
-      } catch {
-        // 팀 미배정 상태일 수 있음
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-sm text-gray-500 dark:text-gray-400">로딩 중...</p>
+      <div className="space-y-6">
+        <LoadingSkeleton variant="card" count={3} />
       </div>
     );
   }
@@ -78,21 +95,50 @@ export default function HomePage() {
         </button>
       </div>
 
+      {error && (
+        <ErrorAlert message={error} onRetry={fetchData} />
+      )}
+
       {!team ? (
-        <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
-          <Image
-            src="/images/mascot.png"
-            alt="지방단속"
-            width={100}
-            height={100}
-            className="mx-auto"
-          />
-          <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-            아직 배정된 팀이 없습니다.
-          </p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-            관리자가 팀을 배정하면 챌린지가 시작됩니다.
-          </p>
+        <div className="space-y-4">
+          {pendingChallengeId ? (
+            <div className="rounded-xl border border-gray-200 bg-white p-6 text-center dark:border-gray-800 dark:bg-gray-900">
+              <Image
+                src="/images/mascot.png"
+                alt="지방단속"
+                width={100}
+                height={100}
+                className="mx-auto"
+              />
+              <p className="mt-4 text-sm font-medium text-gray-700 dark:text-gray-300">
+                참여 신청 완료
+              </p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                관리자 승인 후 팀이 배정됩니다. 먼저 온보딩을 진행해주세요.
+              </p>
+              <Link
+                href="/onboarding"
+                className="mt-4 inline-block rounded-lg bg-black px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+              >
+                온보딩 시작
+              </Link>
+            </div>
+          ) : (
+            !error && (
+              <div className="rounded-xl border border-dashed border-gray-300 p-8 dark:border-gray-700">
+                <EmptyState
+                  title="아직 배정된 팀이 없습니다"
+                  description="관리자가 팀을 배정하면 챌린지가 시작됩니다."
+                  action={{
+                    label: "온보딩 시작하기",
+                    onClick: () => {
+                      window.location.href = "/onboarding";
+                    },
+                  }}
+                />
+              </div>
+            )
+          )}
         </div>
       ) : (
         <>
@@ -174,14 +220,11 @@ export default function HomePage() {
                       {a.achievementRate.toFixed(1)}%
                     </span>
                   </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                    <div
-                      className="h-full rounded-full bg-black transition-all dark:bg-white"
-                      style={{
-                        width: `${Math.min(a.achievementRate, 100)}%`,
-                      }}
-                    />
-                  </div>
+                  <ProgressBar
+                    value={a.achievementRate}
+                    showLabel={false}
+                    className="mt-2"
+                  />
                   <div className="mt-1 flex justify-between text-xs text-gray-400">
                     <span>
                       시작 {a.startValue}
@@ -200,21 +243,21 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                아직 목표가 설정되지 않았습니다.
-              </p>
-              <Link
-                href="/onboarding"
-                className="mt-3 inline-block rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-              >
-                온보딩 시작
-              </Link>
+            <div className="rounded-xl border border-dashed border-gray-300 p-6 dark:border-gray-700">
+              <EmptyState
+                title="아직 목표가 설정되지 않았습니다"
+                action={{
+                  label: "온보딩 시작",
+                  onClick: () => {
+                    window.location.href = "/onboarding";
+                  },
+                }}
+              />
             </div>
           )}
 
           {/* 빠른 메뉴 */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Link
               href="/profile"
               className="rounded-xl border border-gray-200 bg-white p-4 text-center transition hover:border-gray-300 hover:shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700"

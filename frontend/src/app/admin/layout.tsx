@@ -16,7 +16,7 @@ export default function AdminLayout({
     <AdminGuard>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <AdminNav />
-        <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">{children}</main>
+        <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 md:px-8">{children}</main>
       </div>
     </AdminGuard>
   );

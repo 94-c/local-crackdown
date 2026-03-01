@@ -1,43 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { Team, UserWeeklyResult } from "@/lib/types";
+import { LoadingSkeleton, ErrorAlert, EmptyState, ProgressBar } from "@/components/ui";
 
 export default function ResultPage() {
   const [results, setResults] = useState<UserWeeklyResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const fetchResults = async () => {
-      try {
-        const teams = await apiClient.get<Team[]>("/api/teams/me");
-        if (teams.length === 0) {
-          setLoading(false);
-          return;
-        }
-
-        const challengeId = teams[0].challengeId;
-        const data = await apiClient.get<UserWeeklyResult[]>(
-          `/api/weekly-results/me?challengeId=${challengeId}`
-        );
-        setResults(data);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "결과를 불러올 수 없습니다"
-        );
-      } finally {
+  const fetchResults = useCallback(async () => {
+    setError("");
+    setLoading(true);
+    try {
+      const teams = await apiClient.get<Team[]>("/api/teams/me");
+      if (teams.length === 0) {
         setLoading(false);
+        return;
       }
-    };
-    fetchResults();
+
+      const challengeId = teams[0].challengeId;
+      const data = await apiClient.get<UserWeeklyResult[]>(
+        `/api/weekly-results/me?challengeId=${challengeId}`
+      );
+      setResults(data);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "결과를 불러올 수 없습니다"
+      );
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchResults();
+  }, [fetchResults]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-sm text-gray-500 dark:text-gray-400">로딩 중...</p>
+      <div className="space-y-6">
+        <div className="h-7 w-24 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
+        <LoadingSkeleton variant="card" count={3} />
       </div>
     );
   }
@@ -47,21 +52,14 @@ export default function ResultPage() {
       <h1 className="text-xl font-bold">주간 결과</h1>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-          {error}
-        </div>
+        <ErrorAlert message={error} onRetry={fetchResults} />
       )}
 
       {results.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
-          <p className="text-2xl">📊</p>
-          <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-            아직 주간 결과가 없습니다
-          </p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-            주간 마감이 완료되면 결과를 확인할 수 있습니다
-          </p>
-        </div>
+        <EmptyState
+          title="아직 주간 결과가 없습니다"
+          description="주간 마감이 완료되면 결과를 확인할 수 있습니다."
+        />
       ) : (
         <div className="space-y-3">
           {results.map((result) => (
@@ -81,22 +79,13 @@ export default function ResultPage() {
               <div className="mt-4 space-y-3">
                 {/* 내 달성률 */}
                 <div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500 dark:text-gray-400">
-                      내 달성률
-                    </span>
-                    <span className="font-bold">
-                      {Number(result.achievementRate).toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                    <div
-                      className="h-full rounded-full bg-black transition-all dark:bg-white"
-                      style={{
-                        width: `${Math.min(Number(result.achievementRate), 100)}%`,
-                      }}
-                    />
-                  </div>
+                  <p className="mb-1 text-sm text-gray-500 dark:text-gray-400">
+                    내 달성률
+                  </p>
+                  <ProgressBar
+                    value={Math.min(Number(result.achievementRate), 100)}
+                    showLabel
+                  />
                 </div>
 
                 {/* 팀 점수 & 순위 */}

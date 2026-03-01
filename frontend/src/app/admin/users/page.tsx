@@ -1,50 +1,51 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { UserInfo } from "@/lib/types";
+import { LoadingSkeleton, ErrorAlert, EmptyState } from "@/components/ui";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const data = await apiClient.get<UserInfo[]>("/api/admin/users");
-        setUsers(data);
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "사용자 목록을 불러올 수 없습니다"
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUsers();
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await apiClient.get<UserInfo[]>("/api/admin/users");
+      setUsers(data);
+      setError("");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "사용자 목록을 불러올 수 없습니다"
+      );
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">사용자 관리</h1>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-          {error}
-        </div>
+        <ErrorAlert message={error} onRetry={fetchUsers} onDismiss={() => setError("")} />
       )}
 
       {loading ? (
-        <p className="text-sm text-gray-500 dark:text-gray-400">로딩 중...</p>
+        <LoadingSkeleton variant="table" />
       ) : users.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            등록된 사용자가 없습니다.
-          </p>
-        </div>
+        <EmptyState
+          title="등록된 사용자가 없습니다"
+          description="아직 가입한 사용자가 없습니다."
+        />
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-gray-600 dark:text-gray-400">

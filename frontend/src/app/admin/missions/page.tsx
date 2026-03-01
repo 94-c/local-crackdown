@@ -8,8 +8,11 @@ import type {
   PenaltyMission,
   FinalScoreResult,
 } from "@/lib/types";
+import { LoadingSkeleton, ErrorAlert, EmptyState, useToast } from "@/components/ui";
 
 export default function MissionsPage() {
+  const toast = useToast();
+
   // Challenge selection
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [selectedChallengeId, setSelectedChallengeId] = useState("");
@@ -39,7 +42,6 @@ export default function MissionsPage() {
 
   // General
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   // Fetch challenges on mount
   useEffect(() => {
@@ -128,7 +130,6 @@ export default function MissionsPage() {
     setSelectedChallengeId(challengeId);
     setShowForm(false);
     setError("");
-    setSuccess("");
     fetchTeams(challengeId);
     fetchPenalties(challengeId, selectedWeek);
     fetchFinalScores(challengeId);
@@ -148,7 +149,6 @@ export default function MissionsPage() {
     if (!selectedChallengeId || !formTeamId) return;
     setFormLoading(true);
     setError("");
-    setSuccess("");
 
     try {
       await apiClient.post("/api/admin/penalties", {
@@ -158,7 +158,7 @@ export default function MissionsPage() {
         missionName: formMissionName,
         description: formDescription || null,
       });
-      setSuccess("벌칙 미션이 배정되었습니다.");
+      toast.success("벌칙 미션이 배정되었습니다.");
       setFormMissionName("");
       setFormDescription("");
       setFormTeamId("");
@@ -183,7 +183,7 @@ export default function MissionsPage() {
       await apiClient.put(`/api/admin/penalties/${penaltyId}/status`, {
         status,
       });
-      setSuccess(`상태가 ${status}(으)로 변경되었습니다.`);
+      toast.success(`상태가 변경되었습니다.`);
       fetchPenalties(selectedChallengeId, selectedWeek);
     } catch (err) {
       setError(
@@ -200,7 +200,7 @@ export default function MissionsPage() {
         `/api/admin/penalty-verifications/${verificationId}/approve`,
         {}
       );
-      setSuccess("인증이 승인되었습니다.");
+      toast.success("인증이 승인되었습니다.");
       fetchPenalties(selectedChallengeId, selectedWeek);
     } catch (err) {
       setError(
@@ -217,7 +217,6 @@ export default function MissionsPage() {
 
     setCalculating(true);
     setError("");
-    setSuccess("");
 
     try {
       const data = await apiClient.post<FinalScoreResult[]>(
@@ -225,7 +224,7 @@ export default function MissionsPage() {
         {}
       );
       setFinalScores(data);
-      setSuccess("최종 순위가 계산되었습니다.");
+      toast.success("최종 순위가 계산되었습니다.");
     } catch (err) {
       setError(
         err instanceof Error
@@ -267,14 +266,7 @@ export default function MissionsPage() {
       </h1>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="rounded-lg bg-green-50 p-3 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400">
-          {success}
-        </div>
+        <ErrorAlert message={error} onDismiss={() => setError("")} />
       )}
 
       {/* Challenge Selector */}
@@ -418,15 +410,12 @@ export default function MissionsPage() {
 
           {/* Penalty List */}
           {loadingPenalties ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              로딩 중...
-            </p>
+            <LoadingSkeleton variant="card" count={2} />
           ) : penalties.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {selectedWeek}주차에 배정된 벌칙 미션이 없습니다.
-              </p>
-            </div>
+            <EmptyState
+              title={`${selectedWeek}주차 벌칙 미션이 없습니다`}
+              description="벌칙 배정 버튼을 눌러 하위팀에 벌칙 미션을 배정하세요."
+            />
           ) : (
             <div className="space-y-4">
               {penalties.map((penalty) => (
@@ -540,14 +529,15 @@ export default function MissionsPage() {
             </div>
 
             {loadingFinalScores ? (
-              <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                로딩 중...
-              </p>
+              <div className="mt-4">
+                <LoadingSkeleton variant="table" />
+              </div>
             ) : finalScores.length === 0 ? (
-              <div className="mt-4 rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  아직 최종 순위가 계산되지 않았습니다.
-                </p>
+              <div className="mt-4">
+                <EmptyState
+                  title="최종 순위가 아직 없습니다"
+                  description="최종 순위 계산 버튼을 눌러 4주 합산 순위를 산정하세요."
+                />
               </div>
             ) : (
               <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">

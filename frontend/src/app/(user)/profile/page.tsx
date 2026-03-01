@@ -9,6 +9,7 @@ import type {
 } from "@/lib/types";
 import Link from "next/link";
 import InBodyModal from "@/components/InBodyModal";
+import { LoadingSkeleton, ErrorAlert, EmptyState, ProgressBar } from "@/components/ui";
 
 export default function ProfilePage() {
   const [challengeId, setChallengeId] = useState<string | null>(null);
@@ -19,6 +20,7 @@ export default function ProfilePage() {
   const [modalOpen, setModalOpen] = useState(false);
 
   const fetchData = useCallback(async (cId: string) => {
+    setError("");
     try {
       const achievementPromise = cId
         ? apiClient.get<Achievement[]>(`/api/goals/achievement?challengeId=${cId}`)
@@ -88,8 +90,11 @@ export default function ProfilePage() {
 
   if (loadingData) {
     return (
-      <main className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-gray-500 dark:text-gray-400">불러오는 중...</p>
+      <main className="min-h-screen p-6">
+        <div className="mx-auto max-w-lg space-y-6">
+          <div className="h-8 w-32 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
+          <LoadingSkeleton variant="card" count={2} />
+        </div>
       </main>
     );
   }
@@ -109,26 +114,25 @@ export default function ProfilePage() {
         </div>
 
         {error && (
-          <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-            {error}
-          </div>
+          <ErrorAlert
+            message={error}
+            onRetry={challengeId ? () => fetchData(challengeId) : undefined}
+          />
         )}
 
         {/* Goal Achievement Section */}
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">내 목표</h2>
           {achievements.length === 0 ? (
-            <div className="rounded-xl border border-gray-200 p-6 text-center dark:border-gray-700">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                설정된 목표가 없습니다.
-              </p>
-              <Link
-                href="/onboarding"
-                className="mt-2 inline-block text-sm font-medium underline hover:text-black dark:hover:text-white"
-              >
-                목표 설정하기
-              </Link>
-            </div>
+            <EmptyState
+              title="설정된 목표가 없습니다"
+              action={{
+                label: "목표 설정하기",
+                onClick: () => {
+                  window.location.href = "/onboarding";
+                },
+              }}
+            />
           ) : (
             achievements.map((a) => {
               const rate = Math.min(Math.max(a.achievementRate, 0), 100);
@@ -154,13 +158,7 @@ export default function ProfilePage() {
                       목표: {a.targetValue} {a.unit}
                     </span>
                   </div>
-                  {/* Progress Bar */}
-                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                    <div
-                      className="h-full rounded-full bg-black transition-all dark:bg-white"
-                      style={{ width: `${rate}%` }}
-                    />
-                  </div>
+                  <ProgressBar value={rate} showLabel className="mt-2" />
                 </div>
               );
             })
@@ -182,11 +180,10 @@ export default function ProfilePage() {
             )}
           </div>
           {inbodyRecords.length === 0 ? (
-            <div className="rounded-xl border border-gray-200 p-6 text-center dark:border-gray-700">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                인바디 기록이 없습니다.
-              </p>
-            </div>
+            <EmptyState
+              title="인바디 기록이 없습니다"
+              description="인바디 기록 추가 버튼을 눌러 첫 기록을 등록해보세요."
+            />
           ) : (
             <div className="space-y-2">
               {inbodyRecords.map((record) => (

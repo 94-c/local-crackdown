@@ -3,8 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { Team, TeamMission, MissionTemplate } from "@/lib/types";
+import { LoadingSkeleton, ErrorAlert, EmptyState, ProgressBar, useToast } from "@/components/ui";
 
 export default function TeamPage() {
+  const toast = useToast();
   const [team, setTeam] = useState<Team | null>(null);
   const [mission, setMission] = useState<TeamMission | null>(null);
   const [missionTemplates, setMissionTemplates] = useState<MissionTemplate[]>(
@@ -23,7 +25,6 @@ export default function TeamPage() {
   const [progressValue, setProgressValue] = useState("");
   const [progressLoading, setProgressLoading] = useState(false);
   const [progressError, setProgressError] = useState("");
-  const [progressSuccess, setProgressSuccess] = useState(false);
 
   const weekNumber = 1;
 
@@ -109,7 +110,6 @@ export default function TeamPage() {
     if (!mission || !progressValue) return;
 
     setProgressError("");
-    setProgressSuccess(false);
     setProgressLoading(true);
     try {
       const updated = await apiClient.put<TeamMission>(
@@ -118,7 +118,7 @@ export default function TeamPage() {
       );
       setMission(updated);
       setProgressValue("");
-      setProgressSuccess(true);
+      toast.success("진행 상태가 업데이트되었습니다!");
     } catch (err) {
       setProgressError(
         err instanceof Error ? err.message : "진행 업데이트에 실패했습니다."
@@ -140,8 +140,9 @@ export default function TeamPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-sm text-gray-500 dark:text-gray-400">로딩 중...</p>
+      <div className="space-y-6">
+        <div className="h-7 w-24 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
+        <LoadingSkeleton variant="card" count={2} />
       </div>
     );
   }
@@ -151,9 +152,14 @@ export default function TeamPage() {
       <h1 className="text-xl font-bold">팀 미션</h1>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-          {error}
-        </div>
+        <ErrorAlert message={error} />
+      )}
+
+      {!team && !error && (
+        <EmptyState
+          title="참여 중인 팀이 없습니다"
+          description="관리자가 팀을 배정하면 미션을 확인할 수 있습니다."
+        />
       )}
 
       {team && (
@@ -212,30 +218,21 @@ export default function TeamPage() {
 
                 {/* Progress Bar */}
                 <div className="mt-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">
-                      진행률
-                    </span>
-                    <span className="font-bold">
-                      {mission.targetValue > 0
+                  <ProgressBar
+                    value={
+                      mission.targetValue > 0
                         ? Math.min(
                             Math.round(
                               (mission.currentValue / mission.targetValue) * 100
                             ),
                             100
                           )
-                        : 0}
-                      %
-                    </span>
-                  </div>
-                  <div className="mt-2 h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                    <div
-                      className="h-full rounded-full bg-black transition-all dark:bg-white"
-                      style={{
-                        width: `${mission.targetValue > 0 ? Math.min(Math.round((mission.currentValue / mission.targetValue) * 100), 100) : 0}%`,
-                      }}
-                    />
-                  </div>
+                        : 0
+                    }
+                    size="lg"
+                    showLabel
+                    className="mb-1"
+                  />
                   <div className="mt-1 flex justify-between text-xs text-gray-400">
                     <span>
                       현재 {mission.currentValue} {mission.unit}
@@ -254,13 +251,8 @@ export default function TeamPage() {
                 </h3>
                 <form onSubmit={handleProgressUpdate} className="mt-3">
                   {progressError && (
-                    <div className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                      {progressError}
-                    </div>
-                  )}
-                  {progressSuccess && (
-                    <div className="mb-3 rounded-lg bg-green-50 p-3 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400">
-                      진행 상태가 업데이트되었습니다!
+                    <div className="mb-3">
+                      <ErrorAlert message={progressError} />
                     </div>
                   )}
                   <div className="flex gap-2">
@@ -334,9 +326,7 @@ export default function TeamPage() {
 
               <form onSubmit={handleCreateMission} className="mt-4 space-y-4">
                 {createError && (
-                  <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                    {createError}
-                  </div>
+                  <ErrorAlert message={createError} />
                 )}
 
                 <div>

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { Challenge, WeeklyResult } from "@/lib/types";
+import { LoadingSkeleton, ErrorAlert, EmptyState } from "@/components/ui";
 
 export default function RankingsPage() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -74,8 +75,9 @@ export default function RankingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-sm text-gray-500 dark:text-gray-400">로딩 중...</p>
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">순위표</h1>
+        <LoadingSkeleton variant="table" />
       </div>
     );
   }
@@ -85,14 +87,12 @@ export default function RankingsPage() {
       <h1 className="text-2xl font-bold tracking-tight">순위표</h1>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-          {error}
-        </div>
+        <ErrorAlert message={error} onRetry={fetchResults} onDismiss={() => setError("")} />
       )}
 
       {/* 필터 */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
           <div>
             <label
               htmlFor="challenge-select"
@@ -230,11 +230,10 @@ export default function RankingsPage() {
       )}
 
       {results.length === 0 && !fetching && !error && (
-        <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center dark:border-gray-700">
-          <p className="text-gray-500 dark:text-gray-400">
-            챌린지와 주차를 선택한 후 조회 버튼을 눌러주세요
-          </p>
-        </div>
+        <EmptyState
+          title="순위 데이터가 없습니다"
+          description="챌린지와 주차를 선택한 후 조회 버튼을 눌러주세요."
+        />
       )}
     </div>
   );

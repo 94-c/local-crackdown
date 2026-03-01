@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,8 +33,10 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className="min-h-screen antialiased">
-          <ServiceWorkerRegister />
-          {children}
+          <ToastProvider>
+            <ServiceWorkerRegister />
+            {children}
+          </ToastProvider>
         </body>
     </html>
   );

@@ -2,8 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { apiClient } from "@/lib/api-client";
-import type { GoalType, Team, InBodyRecord, UserGoal, UserProfile } from "@/lib/types";
+import type {
+  GoalType,
+  Team,
+  InBodyRecord,
+  UserGoal,
+  UserProfile,
+} from "@/lib/types";
 import Image from "next/image";
+import { LoadingSkeleton, ErrorAlert } from "@/components/ui";
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
@@ -48,7 +55,15 @@ export default function OnboardingPage() {
         if (teams.length > 0) {
           setChallengeId(teams[0].challengeId);
         } else {
-          setError("참여 중인 챌린지가 없습니다. 관리자에게 문의하세요.");
+          // 팀이 없으면 pendingChallengeId를 fallback으로 사용
+          const pendingId = localStorage.getItem("pendingChallengeId");
+          if (pendingId) {
+            setChallengeId(pendingId);
+          } else {
+            setError(
+              "참여 중인 챌린지가 없습니다. 관리자에게 문의하세요."
+            );
+          }
         }
         setGoalTypes(types);
 
@@ -168,8 +183,10 @@ export default function OnboardingPage() {
 
   if (initialLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-gray-500 dark:text-gray-400">불러오는 중...</p>
+      <main className="flex min-h-screen flex-col items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <LoadingSkeleton variant="form" count={1} />
+        </div>
       </main>
     );
   }
@@ -210,9 +227,7 @@ export default function OnboardingPage() {
             </div>
 
             {error && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                {error}
-              </div>
+              <ErrorAlert message={error} />
             )}
 
             <div className="space-y-4">
@@ -308,9 +323,7 @@ export default function OnboardingPage() {
             </div>
 
             {error && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                {error}
-              </div>
+              <ErrorAlert message={error} />
             )}
 
             <div className="space-y-4">
@@ -427,9 +440,7 @@ export default function OnboardingPage() {
             </div>
 
             {error && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                {error}
-              </div>
+              <ErrorAlert message={error} />
             )}
 
             <div className="space-y-3">
