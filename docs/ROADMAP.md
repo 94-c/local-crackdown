@@ -48,19 +48,20 @@
 
 ---
 
-## Sprint 3: 팀 미션 시스템
+## Sprint 3: 팀 미션 시스템 ✅
 
 ### Backend
-- [ ] MissionTemplate 엔티티 (미션 유형 템플릿)
-- [ ] TeamMission 엔티티 (주간 팀 미션)
-- [ ] MissionVerification 엔티티 (인증 업로드)
-- [ ] S3 presigned URL 연동
-- [ ] API: 팀 미션 입력/조회
-- [ ] API: 미션 인증 업로드
+- [x] MissionTemplate 엔티티 (미션 유형 템플릿 + 시드 4종)
+- [x] TeamMission 엔티티 (주간 팀 미션)
+- [x] MissionVerification 엔티티 (인증 업로드)
+- [ ] S3 presigned URL 연동 (이미지 업로드 — 배포 시 구현)
+- [x] API: 팀 미션 입력/조회/진행률 업데이트
+- [x] API: 미션 인증 등록/조회
+- [x] Flyway 마이그레이션 (V6)
 
 ### Frontend
-- [ ] /team — 팀 미션 입력/현황
-- [ ] /verify — 미션 인증 업로드
+- [x] /team — 팀 미션 생성/현황/진행률 업데이트
+- [x] /verify — 미션 인증 등록/목록 (이미지 업로드 준비중)
 
 ---
 
