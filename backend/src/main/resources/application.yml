@@ -25,9 +25,6 @@ jwt:
   secret: ${JWT_SECRET:my-super-secret-key-that-is-at-least-256-bits-long-for-hs256}
   expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
-kakao:
-  client-id: ${KAKAO_CLIENT_ID:}
-
 storage:
   s3:
     endpoint: ${S3_ENDPOINT:http://localhost:9000}

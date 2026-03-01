@@ -4,27 +4,42 @@ import { useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import Link from "next/link";
 
-export default function LoginPage() {
+export default function SignupPage() {
+  const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const validate = (): string | null => {
+    if (password.length < 8) {
+      return "비밀번호는 8자 이상이어야 합니다";
+    }
+    if (password !== passwordConfirm) {
+      return "비밀번호가 일치하지 않습니다";
+    }
+    return null;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const data = await apiClient.post<{ accessToken: string }>(
-        "/api/auth/login",
-        { email, password }
-      );
-      localStorage.setItem("token", data.accessToken);
-      window.location.href = "/";
+      await apiClient.post("/api/auth/signup", { email, password, nickname });
+      window.location.href = "/login?registered=true";
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "로그인에 실패했습니다"
+        err instanceof Error ? err.message : "회원가입에 실패했습니다"
       );
     } finally {
       setLoading(false);
@@ -35,9 +50,9 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Challenge</h1>
+          <h1 className="text-3xl font-bold tracking-tight">회원가입</h1>
           <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-            4주 챌린지로 목표를 달성하세요
+            새 계정을 만들어 챌린지에 참여하세요
           </p>
         </div>
 
@@ -47,6 +62,21 @@ export default function LoginPage() {
               {error}
             </div>
           )}
+
+          <div>
+            <label htmlFor="nickname" className="block text-sm font-medium">
+              닉네임
+            </label>
+            <input
+              id="nickname"
+              type="text"
+              required
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+              placeholder="닉네임을 입력하세요"
+            />
+          </div>
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium">
@@ -71,10 +101,30 @@ export default function LoginPage() {
               id="password"
               type="password"
               required
+              minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-              placeholder="••••••••"
+              placeholder="8자 이상 입력하세요"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="passwordConfirm"
+              className="block text-sm font-medium"
+            >
+              비밀번호 확인
+            </label>
+            <input
+              id="passwordConfirm"
+              type="password"
+              required
+              minLength={8}
+              value={passwordConfirm}
+              onChange={(e) => setPasswordConfirm(e.target.value)}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+              placeholder="비밀번호를 다시 입력하세요"
             />
           </div>
 
@@ -83,18 +133,18 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
           >
-            {loading ? "로그인 중..." : "로그인"}
+            {loading ? "가입 중..." : "회원가입"}
           </button>
         </form>
 
         <div className="space-y-3 text-center text-sm text-gray-600 dark:text-gray-400">
           <p>
-            계정이 없으신가요?{" "}
+            이미 계정이 있으신가요?{" "}
             <Link
-              href="/signup"
+              href="/login"
               className="font-medium underline hover:text-black dark:hover:text-white"
             >
-              회원가입
+              로그인
             </Link>
           </p>
           <p>

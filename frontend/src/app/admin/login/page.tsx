@@ -17,7 +17,7 @@ export default function AdminLoginPage() {
 
     try {
       const data = await apiClient.post<{ accessToken: string }>(
-        "/api/auth/admin/login",
+        "/api/auth/login",
         { email, password }
       );
       localStorage.setItem("token", data.accessToken);
