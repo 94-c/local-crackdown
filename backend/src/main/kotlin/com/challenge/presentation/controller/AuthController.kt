@@ -19,14 +19,9 @@ class AuthController(
         return authService.signUp(request)
     }
 
-    @PostMapping("/admin/login")
-    fun adminLogin(@Valid @RequestBody request: LoginRequest): TokenResponse {
+    @PostMapping("/login")
+    fun login(@Valid @RequestBody request: LoginRequest): TokenResponse {
         return authService.login(request)
-    }
-
-    @PostMapping("/kakao")
-    fun kakaoLogin(@Valid @RequestBody request: KakaoLoginRequest): TokenResponse {
-        return authService.kakaoLogin(request.code, request.redirectUri)
     }
 
     @GetMapping("/me")

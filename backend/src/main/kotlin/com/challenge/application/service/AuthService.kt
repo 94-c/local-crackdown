@@ -5,7 +5,6 @@ import com.challenge.domain.entity.Role
 import com.challenge.domain.entity.User
 import com.challenge.domain.repository.UserRepository
 import com.challenge.infrastructure.security.JwtProvider
-import com.challenge.infrastructure.security.KakaoOAuthService
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -15,8 +14,7 @@ import java.util.UUID
 class AuthService(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder,
-    private val jwtProvider: JwtProvider,
-    private val kakaoOAuthService: KakaoOAuthService
+    private val jwtProvider: JwtProvider
 ) {
 
     @Transactional
@@ -27,7 +25,7 @@ class AuthService(
             email = request.email,
             password = passwordEncoder.encode(request.password),
             nickname = request.nickname,
-            role = Role.ADMIN
+            role = Role.USER
         )
         val saved = userRepository.save(user)
 
@@ -45,37 +43,12 @@ class AuthService(
         val user = userRepository.findByEmail(request.email)
             ?: throw IllegalArgumentException("Invalid credentials")
 
-        require(user.role == Role.ADMIN) { "Invalid credentials" }
-        require(user.password != null && passwordEncoder.matches(request.password, user.password)) {
+        require(passwordEncoder.matches(request.password, user.password)) {
             "Invalid credentials"
         }
 
         val token = jwtProvider.generateToken(user.id.toString(), user.email, user.role.name)
         return TokenResponse(accessToken = token)
-    }
-
-    @Transactional
-    fun kakaoLogin(code: String, redirectUri: String): TokenResponse {
-        val kakaoUserInfo = kakaoOAuthService.kakaoLogin(code, redirectUri)
-
-        val user = userRepository.findByKakaoId(kakaoUserInfo.kakaoId)
-            ?: createKakaoUser(kakaoUserInfo)
-
-        val token = jwtProvider.generateToken(user.id.toString(), user.email, user.role.name)
-        return TokenResponse(accessToken = token)
-    }
-
-    private fun createKakaoUser(kakaoUserInfo: KakaoOAuthService.KakaoUserInfo): User {
-        val email = kakaoUserInfo.email ?: "${kakaoUserInfo.kakaoId}@kakao.user"
-        val user = User(
-            email = email,
-            password = null,
-            nickname = kakaoUserInfo.nickname,
-            role = Role.USER,
-            kakaoId = kakaoUserInfo.kakaoId,
-            profileImageUrl = kakaoUserInfo.profileImageUrl
-        )
-        return userRepository.save(user)
     }
 
     @Transactional(readOnly = true)

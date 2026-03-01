@@ -27,14 +27,6 @@ data class LoginRequest(
     val password: String
 )
 
-data class KakaoLoginRequest(
-    @field:NotBlank
-    val code: String,
-
-    @field:NotBlank
-    val redirectUri: String
-)
-
 data class TokenResponse(
     val accessToken: String,
     val tokenType: String = "Bearer"

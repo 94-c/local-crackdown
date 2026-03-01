@@ -14,8 +14,8 @@ class User(
     @Column(nullable = false, unique = true, length = 100)
     var email: String,
 
-    @Column(nullable = true)
-    var password: String? = null,
+    @Column(nullable = false)
+    var password: String,
 
     @Column(nullable = false, length = 50)
     var nickname: String,
@@ -23,9 +23,6 @@ class User(
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     var role: Role = Role.USER,
-
-    @Column(name = "kakao_id", unique = true)
-    var kakaoId: Long? = null,
 
     @Column(name = "profile_image_url")
     var profileImageUrl: String? = null,
