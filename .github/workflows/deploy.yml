@@ -114,6 +114,8 @@ jobs:
     needs: backend-ci
     environment: production
     steps:
+      - uses: actions/checkout@v4
+
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
@@ -127,7 +129,8 @@ jobs:
         run: |
           railway up \
             --service ${{ secrets.RAILWAY_SERVICE_ID }} \
-            --image ${{ env.BACKEND_IMAGE }}:${{ steps.tag.outputs.version }}
+            --message "Deploy ${{ steps.tag.outputs.version }}" \
+            backend
 
   # ── Job 4: Frontend Deploy (Vercel) ────────────────────
   frontend-deploy:
