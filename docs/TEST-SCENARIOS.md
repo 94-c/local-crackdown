@@ -146,9 +146,53 @@ curl http://localhost:8080/api/teams/me \
 ```
 
 ### Sprint 2: 온보딩 + 인바디
-- [ ] 유저 최초 접속 시 온보딩 진입
-- [ ] 인바디 입력 + 목표 설정
-- [ ] 달성률 실시간 확인
+
+#### 시나리오 10: 온보딩 (UI)
+1. 일반 유저 로그인 → /onboarding 접속
+2. Step 1: 체중(75), 골격근량(32), 체지방률(22) 입력 → 다음
+3. Step 2: 목표 유형 선택 (체중감량 → 목표 70kg), 추가 선택 가능
+4. **기대 결과**: 완료 화면 → /profile로 이동
+
+#### 시나리오 11: 프로필 — 달성률 확인 (UI)
+1. /profile 접속
+2. **기대 결과**: 내 목표 (시작값, 목표값, 달성률 %) 표시
+3. **기대 결과**: 인바디 기록 목록 표시
+
+#### 시나리오 12: 인바디 추가 입력 (UI)
+1. /profile에서 인바디 입력 폼 작성 → 저장
+2. **기대 결과**: 기록 목록에 추가, 달성률 업데이트
+
+#### 시나리오 13: API 직접 테스트 (curl)
+```bash
+# 유저 토큰 받기
+USER_TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@test.com","password":"test1234!"}' | jq -r '.accessToken')
+
+# 인바디 입력
+curl -X POST http://localhost:8080/api/inbody \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $USER_TOKEN" \
+  -d '{"challengeId":"{챌린지UUID}","weight":75.0,"skeletalMuscleMass":32.0,"bodyFatPercentage":22.0,"recordDate":"2026-03-02"}'
+
+# 인바디 조회
+curl "http://localhost:8080/api/inbody?challengeId={챌린지UUID}" \
+  -H "Authorization: Bearer $USER_TOKEN"
+
+# 목표 설정
+curl -X POST http://localhost:8080/api/goals \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $USER_TOKEN" \
+  -d '{"challengeId":"{챌린지UUID}","goals":[{"goalTypeId":"{체중감량UUID}","targetValue":70.0,"startValue":75.0}]}'
+
+# 목표 조회
+curl "http://localhost:8080/api/goals?challengeId={챌린지UUID}" \
+  -H "Authorization: Bearer $USER_TOKEN"
+
+# 달성률 조회
+curl "http://localhost:8080/api/goals/achievement?challengeId={챌린지UUID}" \
+  -H "Authorization: Bearer $USER_TOKEN"
+```
 
 ### Sprint 3: 팀 미션
 - [ ] 팀원이 주간 미션 입력

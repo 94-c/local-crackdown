@@ -1,0 +1,319 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { apiClient } from "@/lib/api-client";
+import type {
+  Team,
+  Achievement,
+  InBodyRecord,
+} from "@/lib/types";
+import Link from "next/link";
+
+export default function ProfilePage() {
+  const [challengeId, setChallengeId] = useState<string | null>(null);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [inbodyRecords, setInbodyRecords] = useState<InBodyRecord[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [error, setError] = useState("");
+
+  // InBody form
+  const [weight, setWeight] = useState("");
+  const [muscleMass, setMuscleMass] = useState("");
+  const [bodyFat, setBodyFat] = useState("");
+  const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [formSuccess, setFormSuccess] = useState(false);
+
+  const fetchData = useCallback(async (cId: string) => {
+    try {
+      const [achievementData, inbodyData] = await Promise.all([
+        apiClient.get<Achievement[]>(
+          `/api/goals/achievement?challengeId=${cId}`
+        ),
+        apiClient.get<InBodyRecord[]>(`/api/inbody?challengeId=${cId}`),
+      ]);
+      setAchievements(achievementData);
+      setInbodyRecords(inbodyData);
+    } catch {
+      setError("데이터를 불러오는데 실패했습니다.");
+    } finally {
+      setLoadingData(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const teams = await apiClient.get<Team[]>("/api/teams/me");
+        if (teams.length > 0) {
+          const cId = teams[0].challengeId;
+          setChallengeId(cId);
+          await fetchData(cId);
+        } else {
+          setError("참여 중인 챌린지가 없습니다.");
+          setLoadingData(false);
+        }
+      } catch {
+        setError("데이터를 불러오는데 실패했습니다.");
+        setLoadingData(false);
+      }
+    };
+    init();
+  }, [fetchData]);
+
+  const handleInBodySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!challengeId) return;
+    setFormError("");
+    setFormSuccess(false);
+    setFormLoading(true);
+    try {
+      await apiClient.post<InBodyRecord>("/api/inbody", {
+        challengeId,
+        weight: parseFloat(weight),
+        skeletalMuscleMass: parseFloat(muscleMass),
+        bodyFatPercentage: parseFloat(bodyFat),
+      });
+      setFormSuccess(true);
+      setWeight("");
+      setMuscleMass("");
+      setBodyFat("");
+      await fetchData(challengeId);
+    } catch (err) {
+      setFormError(
+        err instanceof Error ? err.message : "인바디 등록에 실패했습니다"
+      );
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  if (loadingData) {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-6">
+        <p className="text-gray-500 dark:text-gray-400">불러오는 중...</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen p-6">
+      <div className="mx-auto max-w-lg space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">내 프로필</h1>
+          <Link
+            href="/"
+            className="text-sm text-gray-500 underline hover:text-black dark:text-gray-400 dark:hover:text-white"
+          >
+            홈으로
+          </Link>
+        </div>
+
+        {error && (
+          <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+            {error}
+          </div>
+        )}
+
+        {/* Goal Achievement Section */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">내 목표</h2>
+          {achievements.length === 0 ? (
+            <div className="rounded-xl border border-gray-200 p-6 text-center dark:border-gray-700">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                설정된 목표가 없습니다.
+              </p>
+              <Link
+                href="/onboarding"
+                className="mt-2 inline-block text-sm font-medium underline hover:text-black dark:hover:text-white"
+              >
+                목표 설정하기
+              </Link>
+            </div>
+          ) : (
+            achievements.map((a) => {
+              const rate = Math.min(Math.max(a.achievementRate, 0), 100);
+              return (
+                <div
+                  key={a.goalTypeName}
+                  className="rounded-xl border border-gray-200 p-4 dark:border-gray-700"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">{a.goalTypeName}</span>
+                    <span className="text-sm font-bold text-black dark:text-white">
+                      {rate.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>
+                      시작: {a.startValue} {a.unit}
+                    </span>
+                    <span>
+                      현재: {a.currentValue} {a.unit}
+                    </span>
+                    <span>
+                      목표: {a.targetValue} {a.unit}
+                    </span>
+                  </div>
+                  {/* Progress Bar */}
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                    <div
+                      className="h-full rounded-full bg-black transition-all dark:bg-white"
+                      style={{ width: `${rate}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </section>
+
+        {/* InBody Records Section */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">인바디 기록</h2>
+          {inbodyRecords.length === 0 ? (
+            <div className="rounded-xl border border-gray-200 p-6 text-center dark:border-gray-700">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                인바디 기록이 없습니다.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {inbodyRecords.map((record) => (
+                <div
+                  key={record.id}
+                  className="rounded-xl border border-gray-200 p-4 dark:border-gray-700"
+                >
+                  <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                    {formatDate(record.recordDate)}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        체중
+                      </div>
+                      <div className="text-sm font-semibold">
+                        {record.weight} kg
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        골격근량
+                      </div>
+                      <div className="text-sm font-semibold">
+                        {record.skeletalMuscleMass} kg
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        체지방률
+                      </div>
+                      <div className="text-sm font-semibold">
+                        {record.bodyFatPercentage} %
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* InBody Input Form */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">인바디 추가 기록</h2>
+          <form
+            onSubmit={handleInBodySubmit}
+            className="rounded-xl border border-gray-200 p-4 dark:border-gray-700"
+          >
+            {formError && (
+              <div className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                {formError}
+              </div>
+            )}
+            {formSuccess && (
+              <div className="mb-3 rounded-lg bg-green-50 p-3 text-sm text-green-600 dark:bg-green-900/20 dark:text-green-400">
+                인바디가 성공적으로 등록되었습니다!
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div>
+                <label
+                  htmlFor="profile-weight"
+                  className="block text-sm font-medium"
+                >
+                  체중 (kg)
+                </label>
+                <input
+                  id="profile-weight"
+                  type="number"
+                  step="0.1"
+                  required
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+                  placeholder="예: 70.5"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="profile-muscle"
+                  className="block text-sm font-medium"
+                >
+                  골격근량 (kg)
+                </label>
+                <input
+                  id="profile-muscle"
+                  type="number"
+                  step="0.1"
+                  required
+                  value={muscleMass}
+                  onChange={(e) => setMuscleMass(e.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+                  placeholder="예: 28.3"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="profile-fat"
+                  className="block text-sm font-medium"
+                >
+                  체지방률 (%)
+                </label>
+                <input
+                  id="profile-fat"
+                  type="number"
+                  step="0.1"
+                  required
+                  value={bodyFat}
+                  onChange={(e) => setBodyFat(e.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+                  placeholder="예: 22.5"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={formLoading || !weight || !muscleMass || !bodyFat}
+              className="mt-4 w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+            >
+              {formLoading ? "저장 중..." : "인바디 기록 추가"}
+            </button>
+          </form>
+        </section>
+      </div>
+    </main>
+  );
+}
