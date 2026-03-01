@@ -3,13 +3,16 @@
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { logout } from "@/lib/auth";
-import type { Team, Achievement } from "@/lib/types";
+import type { Team, Achievement, UserWeeklyResult } from "@/lib/types";
 import Image from "next/image";
 import Link from "next/link";
 
 export default function HomePage() {
   const [team, setTeam] = useState<Team | null>(null);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [latestResult, setLatestResult] = useState<UserWeeklyResult | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [nickname, setNickname] = useState("");
 
@@ -26,6 +29,18 @@ export default function HomePage() {
             `/api/goals/achievement?challengeId=${teams[0].challengeId}`
           );
           setAchievements(achData);
+
+          // 최신 주간 결과 가져오기
+          try {
+            const weeklyResults = await apiClient.get<UserWeeklyResult[]>(
+              `/api/weekly-results/me?challengeId=${teams[0].challengeId}`
+            );
+            if (weeklyResults.length > 0) {
+              setLatestResult(weeklyResults[weeklyResults.length - 1]);
+            }
+          } catch {
+            // 주간 결과가 아직 없을 수 있음
+          }
         }
       } catch {
         // 팀 미배정 상태일 수 있음
@@ -92,6 +107,53 @@ export default function HomePage() {
               {team.member2 && <p>{team.member2.nickname}</p>}
             </div>
           </div>
+
+          {/* 최신 주간 결과 */}
+          {latestResult && (
+            <Link href="/result" className="block">
+              <div className="rounded-xl border border-gray-200 bg-white p-5 transition hover:border-gray-300 hover:shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {latestResult.weekNumber}주차 결과
+                  </h2>
+                  {latestResult.isBottomTeam && (
+                    <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                      하위팀
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      내 달성률
+                    </p>
+                    <p className="mt-0.5 text-lg font-bold">
+                      {Number(latestResult.achievementRate).toFixed(1)}%
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      팀 점수
+                    </p>
+                    <p className="mt-0.5 text-lg font-bold">
+                      {Number(latestResult.teamScore).toFixed(1)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      팀 순위
+                    </p>
+                    <p className="mt-0.5 text-lg font-bold">
+                      {latestResult.teamRank}위
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-3 text-center text-xs text-gray-400 dark:text-gray-500">
+                  전체 결과 보기 →
+                </p>
+              </div>
+            </Link>
+          )}
 
           {/* 달성률 요약 */}
           {achievements.length > 0 ? (

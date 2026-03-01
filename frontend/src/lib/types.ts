@@ -88,6 +88,22 @@ export interface Verification {
   createdAt: string;
 }
 
+export interface WeeklyResult {
+  teamName: string;
+  teamScore: number;
+  teamRank: number;
+  isBottomTeam: boolean;
+  members: { nickname: string; achievementRate: number }[];
+}
+
+export interface UserWeeklyResult {
+  weekNumber: number;
+  achievementRate: number;
+  teamScore: number;
+  teamRank: number;
+  isBottomTeam: boolean;
+}
+
 // Sprint 5: 벌칙 미션 + 시즌 종료
 export interface PenaltyMission {
   id: string;
