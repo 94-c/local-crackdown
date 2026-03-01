@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 @RestControllerAdvice
 class GlobalExceptionHandler {
 
+    private val log = org.slf4j.LoggerFactory.getLogger(javaClass)
+
     @ExceptionHandler(IllegalArgumentException::class)
     fun handleBadRequest(e: IllegalArgumentException): ResponseEntity<Map<String, String>> {
         return ResponseEntity.badRequest().body(mapOf("error" to (e.message ?: "Bad request")))
@@ -22,6 +24,7 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception::class)
     fun handleInternal(e: Exception): ResponseEntity<Map<String, String>> {
+        log.error("Unhandled exception: ${e.javaClass.simpleName} - ${e.message}", e)
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(mapOf("error" to "Internal server error"))
     }
