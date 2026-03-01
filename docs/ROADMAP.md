@@ -65,34 +65,36 @@
 
 ---
 
-## Sprint 4: 주간 마감 + 순위
+## Sprint 4: 주간 마감 + 순위 ✅
 
 ### Backend
-- [ ] WeeklySnapshot 엔티티 (immutable)
-- [ ] Close Week 로직 (달성률 → 팀 점수 → 순위 → 하위 2팀)
-- [ ] 누락자 처리 (직전 주 유지)
-- [ ] API: 주간 마감 실행 (Admin)
-- [ ] API: 주간 결과 조회
+- [x] WeeklySnapshot 엔티티 (immutable)
+- [x] Close Week 로직 (달성률 → 팀 점수 → 순위 → 하위 2팀)
+- [x] 누락자 처리 (직전 주 유지)
+- [x] API: 주간 마감 실행 (Admin)
+- [x] API: 주간 결과 조회
+- [x] Flyway 마이그레이션 (V7)
 
 ### Frontend
-- [ ] /admin/weekly-close — 마감 실행
-- [ ] /admin/rankings — 순위표
-- [ ] /result — 유저 주간 결과
-- [ ] 홈 대시보드 (마감 카운트다운)
+- [x] /admin/weekly-close — 마감 실행
+- [x] /admin/rankings — 순위표
+- [x] /result — 유저 주간 결과
+- [x] 홈 대시보드에 이번 주 결과 카드 추가
 
 ---
 
-## Sprint 5: 벌칙 미션 + 시즌 종료
+## Sprint 5: 벌칙 미션 + 시즌 종료 ✅
 
 ### Backend
-- [ ] PenaltyMission 엔티티 (룰렛 미션)
-- [ ] 벌칙 미션 인증 + Admin 승인
-- [ ] FinalScore 계산 (4주 합산)
-- [ ] 최종 순위 API
+- [x] PenaltyMission 엔티티 (룰렛 미션)
+- [x] PenaltyVerification 엔티티 (벌칙 인증)
+- [x] 벌칙 미션 인증 + Admin 승인
+- [x] FinalScore 계산 (4주 합산)
+- [x] 최종 순위 API
+- [x] Flyway 마이그레이션 (V8)
 
 ### Frontend
-- [ ] /admin/missions — 룰렛, 벌칙 미션 배정/승인
-- [ ] 최종 결과 페이지
+- [x] /admin/missions — 벌칙 미션 배정/인증 승인/최종 순위
 
 ---
 
