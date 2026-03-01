@@ -124,13 +124,13 @@ jobs:
         run: echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
 
       - name: Deploy to Railway
+        working-directory: backend
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           railway up \
             --service ${{ secrets.RAILWAY_SERVICE_ID }} \
-            --message "Deploy ${{ steps.tag.outputs.version }}" \
-            backend
+            --message "Deploy ${{ steps.tag.outputs.version }}"
 
   # ── Job 4: Frontend Deploy (Vercel) ────────────────────
   frontend-deploy:
