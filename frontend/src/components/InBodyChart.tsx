@@ -36,13 +36,7 @@ export default function InBodyChart({ records }: InBodyChartProps) {
   }, [records]);
 
   if (records.length < 2) {
-    return (
-      <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center dark:border-gray-700">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          인바디 기록이 2개 이상이면 그래프가 표시됩니다.
-        </p>
-      </div>
-    );
+    return null;
   }
 
   return (

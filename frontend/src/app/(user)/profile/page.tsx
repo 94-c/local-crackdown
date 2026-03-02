@@ -93,7 +93,7 @@ export default function ProfilePage() {
     return (
       <main className="min-h-screen p-6">
         <div className="mx-auto max-w-lg space-y-6">
-          <div className="h-8 w-32 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
+          <LoadingSkeleton variant="text" count={1} />
           <LoadingSkeleton variant="card" count={2} />
         </div>
       </main>
