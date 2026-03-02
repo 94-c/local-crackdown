@@ -2,15 +2,23 @@ package com.challenge.application.service
 
 import com.challenge.application.dto.NotificationCountResponse
 import com.challenge.application.dto.NotificationResponse
+import com.challenge.application.dto.ReminderResult
 import com.challenge.domain.entity.Notification
+import com.challenge.domain.repository.InBodyRecordRepository
 import com.challenge.domain.repository.NotificationRepository
+import com.challenge.domain.repository.TeamRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 import java.util.UUID
 
 @Service
 class NotificationService(
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
+    private val teamRepository: TeamRepository,
+    private val inBodyRecordRepository: InBodyRecordRepository
 ) {
 
     @Transactional
@@ -23,6 +31,34 @@ class NotificationService(
             link = link
         )
         notificationRepository.save(notification)
+    }
+
+    @Transactional
+    fun sendReminders(challengeId: UUID): ReminderResult {
+        val teams = teamRepository.findByChallengeId(challengeId)
+        val monday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+
+        val memberIds = teams.flatMap { team ->
+            listOfNotNull(team.member1.id, team.member2?.id)
+        }.distinct()
+
+        var sentCount = 0
+        for (userId in memberIds) {
+            val hasRecord = inBodyRecordRepository
+                .existsByUserIdAndChallengeIdAndRecordDateGreaterThanEqual(userId, challengeId, monday)
+            if (!hasRecord) {
+                create(
+                    userId = userId,
+                    title = "인바디 기록 알림",
+                    message = "이번 주 인바디 기록을 입력해주세요.",
+                    type = "REMINDER",
+                    link = "/inbody"
+                )
+                sentCount++
+            }
+        }
+
+        return ReminderResult(sentCount = sentCount)
     }
 
     @Transactional(readOnly = true)

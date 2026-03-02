@@ -9,6 +9,18 @@ import type {
   FinalScoreResult,
 } from "@/lib/types";
 import { LoadingSkeleton, ErrorAlert, EmptyState, useToast } from "@/components/ui";
+import RouletteWheel from "@/components/RouletteWheel";
+
+const PENALTY_MISSIONS = [
+  "공원 5바퀴 달리기",
+  "버피 100개",
+  "플랭크 10분",
+  "줄넘기 500회",
+  "스쿼트 200개",
+  "팔굽혀펴기 100개",
+  "계단 오르기 20층",
+  "런지 200개",
+];
 
 export default function MissionsPage() {
   const toast = useToast();
@@ -34,6 +46,10 @@ export default function MissionsPage() {
   const [formMissionName, setFormMissionName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formLoading, setFormLoading] = useState(false);
+
+  // Roulette
+  const [showRoulette, setShowRoulette] = useState(false);
+  const [rouletteSpinning, setRouletteSpinning] = useState(false);
 
   // Final scores
   const [finalScores, setFinalScores] = useState<FinalScoreResult[]>([]);
@@ -129,6 +145,7 @@ export default function MissionsPage() {
   const handleChallengeChange = (challengeId: string) => {
     setSelectedChallengeId(challengeId);
     setShowForm(false);
+    setShowRoulette(false);
     setError("");
     fetchTeams(challengeId);
     fetchPenalties(challengeId, selectedWeek);
@@ -142,6 +159,22 @@ export default function MissionsPage() {
       fetchPenalties(selectedChallengeId, week);
     }
   };
+
+  // Roulette handlers
+  const handleSpinRoulette = () => {
+    setRouletteSpinning(true);
+  };
+
+  const handleRouletteResult = useCallback((item: string) => {
+    setRouletteSpinning(false);
+    setFormMissionName(item);
+    toast.success(`"${item}" 이(가) 선택되었습니다!`);
+    // Auto-open assignment form after a brief delay
+    setTimeout(() => {
+      setShowForm(true);
+      setShowRoulette(false);
+    }, 800);
+  }, [toast]);
 
   // Assign penalty
   const handleAssignPenalty = async (e: React.FormEvent) => {
@@ -320,17 +353,49 @@ export default function MissionsPage() {
           </div>
 
           {/* Assign Penalty Section */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
               {selectedWeek}주차 벌칙 미션
             </h3>
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-            >
-              {showForm ? "취소" : "벌칙 배정"}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowRoulette(!showRoulette);
+                  if (showForm) setShowForm(false);
+                }}
+                className="rounded-lg border-2 border-black px-4 py-2 text-sm font-medium text-black transition hover:bg-black hover:text-white dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-black"
+              >
+                {showRoulette ? "룰렛 닫기" : "룰렛 돌리기"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowForm(!showForm);
+                  if (showRoulette) setShowRoulette(false);
+                }}
+                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+              >
+                {showForm ? "취소" : "벌칙 배정"}
+              </button>
+            </div>
           </div>
+
+          {/* Roulette Section */}
+          {showRoulette && (
+            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+              <h3 className="mb-4 text-center text-base font-semibold">
+                벌칙 미션 룰렛
+              </h3>
+              <p className="mb-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                룰렛을 돌려 벌칙 미션을 랜덤으로 선택하세요
+              </p>
+              <RouletteWheel
+                items={PENALTY_MISSIONS}
+                onResult={handleRouletteResult}
+                spinning={rouletteSpinning}
+                onSpin={handleSpinRoulette}
+              />
+            </div>
+          )}
 
           {/* Assignment Form */}
           {showForm && (
@@ -379,6 +444,11 @@ export default function MissionsPage() {
                   className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
                   placeholder="예: 공원 5바퀴 뛰기"
                 />
+                {formMissionName && (
+                  <p className="mt-1 text-xs text-green-600 dark:text-green-400">
+                    선택된 미션: {formMissionName}
+                  </p>
+                )}
               </div>
 
               <div>

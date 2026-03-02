@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
-import type { Challenge } from "@/lib/types";
+import type { Challenge, Participant } from "@/lib/types";
 import { LoadingSkeleton, ErrorAlert, EmptyState, useToast } from "@/components/ui";
 
 interface ChallengeMemberDetail {
@@ -29,6 +29,8 @@ interface ChallengeDetailWithMembers {
   totalMembers: number;
 }
 
+type StatusTab = "individual" | "team";
+
 export default function ChallengeDetailPage() {
   const toast = useToast();
   const params = useParams();
@@ -36,8 +38,12 @@ export default function ChallengeDetailPage() {
 
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [memberData, setMemberData] = useState<ChallengeDetailWithMembers | null>(null);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<StatusTab>("individual");
 
   // Edit mode
   const [editing, setEditing] = useState(false);
@@ -78,14 +84,27 @@ export default function ChallengeDetailPage() {
     }
   }, [id]);
 
+  const fetchParticipants = useCallback(async () => {
+    try {
+      const data = await apiClient.get<Participant[]>(
+        `/api/admin/participants?challengeId=${id}`
+      );
+      setParticipants(data);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "개인 참여 현황을 불러올 수 없습니다"
+      );
+    }
+  }, [id]);
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      await Promise.all([fetchChallenge(), fetchMembers()]);
+      await Promise.all([fetchChallenge(), fetchMembers(), fetchParticipants()]);
       setLoading(false);
     };
     load();
-  }, [fetchChallenge, fetchMembers]);
+  }, [fetchChallenge, fetchMembers, fetchParticipants]);
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,6 +163,41 @@ export default function ChallengeDetailPage() {
         {labels[status]}
       </span>
     );
+  };
+
+  const participantStatusBadge = (status: string) => {
+    const config: Record<string, { style: string; label: string }> = {
+      APPROVED: {
+        style: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+        label: "승인",
+      },
+      PENDING: {
+        style: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+        label: "대기",
+      },
+      REJECTED: {
+        style: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+        label: "거절",
+      },
+    };
+    const { style, label } = config[status] || {
+      style: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+      label: status,
+    };
+    return (
+      <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${style}`}>
+        {label}
+      </span>
+    );
+  };
+
+  // Participant summary stats
+  const participantStats = {
+    total: participants.length,
+    approved: participants.filter((p) => p.status === "APPROVED").length,
+    pending: participants.filter((p) => p.status === "PENDING").length,
+    rejected: participants.filter((p) => p.status === "REJECTED").length,
+    teamAssigned: participants.filter((p) => p.hasTeam).length,
   };
 
   if (loading) {
@@ -333,61 +387,109 @@ export default function ChallengeDetailPage() {
         </div>
       </div>
 
-      {/* Section 3: 참여 현황 */}
+      {/* Section 3: 참여 현황 — Tab Switcher */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">
-          참여 현황{" "}
-          {memberData && (
-            <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-              ({memberData.totalTeams}팀 / {memberData.totalMembers}명)
-            </span>
-          )}
-        </h2>
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-100 p-1 dark:border-gray-700 dark:bg-gray-800">
+          <button
+            onClick={() => setActiveTab("individual")}
+            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition ${
+              activeTab === "individual"
+                ? "bg-white text-black shadow-sm dark:bg-gray-900 dark:text-white"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            }`}
+          >
+            개인 현황
+          </button>
+          <button
+            onClick={() => setActiveTab("team")}
+            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition ${
+              activeTab === "team"
+                ? "bg-white text-black shadow-sm dark:bg-gray-900 dark:text-white"
+                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            }`}
+          >
+            팀별 현황
+          </button>
+        </div>
 
-        {!memberData || memberData.teams.length === 0 ? (
-          <EmptyState
-            title="참여 중인 팀이 없습니다"
-            description="팀 관리 페이지에서 팀을 구성하세요."
-          />
-        ) : (
-          <div className="space-y-3">
-            {memberData.teams.map((team) => (
-              <div
-                key={team.teamId}
-                className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
-              >
-                <h3 className="text-base font-semibold">{team.teamName}</h3>
-                <div className="mt-3 overflow-x-auto">
+        {/* Individual Participant View */}
+        {activeTab === "individual" && (
+          <div className="space-y-4">
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+                <p className="text-xs text-gray-500 dark:text-gray-400">전체 참여자</p>
+                <p className="mt-1 text-2xl font-bold">{participantStats.total}</p>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+                <p className="text-xs text-gray-500 dark:text-gray-400">승인</p>
+                <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">
+                  {participantStats.approved}
+                </p>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+                <p className="text-xs text-gray-500 dark:text-gray-400">대기</p>
+                <p className="mt-1 text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                  {participantStats.pending}
+                </p>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+                <p className="text-xs text-gray-500 dark:text-gray-400">팀 배정</p>
+                <p className="mt-1 text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {participantStats.teamAssigned}
+                </p>
+              </div>
+            </div>
+
+            {/* Participant Table */}
+            {participants.length === 0 ? (
+              <EmptyState
+                title="참여자가 없습니다"
+                description="초대 링크를 공유하여 참여자를 모집하세요."
+              />
+            ) : (
+              <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+                <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                        <th className="pb-2 pr-4 font-medium">닉네임</th>
-                        <th className="pb-2 pr-4 font-medium">이메일</th>
-                        <th className="pb-2 pr-4 font-medium">InBody</th>
-                        <th className="pb-2 font-medium">목표</th>
+                        <th className="px-5 py-3 font-medium">닉네임</th>
+                        <th className="px-5 py-3 font-medium">이메일</th>
+                        <th className="px-5 py-3 font-medium">상태</th>
+                        <th className="px-5 py-3 font-medium">팀 배정</th>
+                        <th className="px-5 py-3 font-medium">InBody</th>
+                        <th className="px-5 py-3 font-medium">목표</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {team.members.map((member) => (
+                      {participants.map((participant) => (
                         <tr
-                          key={member.userId}
+                          key={participant.id}
                           className="border-b border-gray-100 last:border-0 dark:border-gray-800"
                         >
-                          <td className="py-2 pr-4 font-medium">
-                            {member.nickname}
+                          <td className="px-5 py-3 font-medium">{participant.nickname}</td>
+                          <td className="px-5 py-3 text-gray-600 dark:text-gray-400">
+                            {participant.email}
                           </td>
-                          <td className="py-2 pr-4 text-gray-600 dark:text-gray-400">
-                            {member.email}
+                          <td className="px-5 py-3">
+                            {participantStatusBadge(participant.status)}
                           </td>
-                          <td className="py-2 pr-4">
-                            {member.hasInbody ? (
+                          <td className="px-5 py-3">
+                            {participant.hasTeam ? (
+                              <span className="inline-block rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                팀 배정
+                              </span>
+                            ) : (
+                              <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                                미배정
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-5 py-3">
+                            {participant.hasInbody ? (
                               <span className="inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                완료
-                                {member.lastInbodyDate && (
-                                  <span className="ml-1 text-green-600 dark:text-green-500">
-                                    ({member.lastInbodyDate})
-                                  </span>
-                                )}
+                                입력 완료
                               </span>
                             ) : (
                               <span className="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
@@ -395,8 +497,8 @@ export default function ChallengeDetailPage() {
                               </span>
                             )}
                           </td>
-                          <td className="py-2">
-                            {member.hasGoals ? (
+                          <td className="px-5 py-3">
+                            {participant.hasGoals ? (
                               <span className="inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
                                 설정됨
                               </span>
@@ -412,7 +514,93 @@ export default function ChallengeDetailPage() {
                   </table>
                 </div>
               </div>
-            ))}
+            )}
+          </div>
+        )}
+
+        {/* Team View */}
+        {activeTab === "team" && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">
+              팀별 현황{" "}
+              {memberData && (
+                <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                  ({memberData.totalTeams}팀 / {memberData.totalMembers}명)
+                </span>
+              )}
+            </h2>
+
+            {!memberData || memberData.teams.length === 0 ? (
+              <EmptyState
+                title="참여 중인 팀이 없습니다"
+                description="팀 관리 페이지에서 팀을 구성하세요."
+              />
+            ) : (
+              <div className="space-y-3">
+                {memberData.teams.map((team) => (
+                  <div
+                    key={team.teamId}
+                    className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
+                  >
+                    <h3 className="text-base font-semibold">{team.teamName}</h3>
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                            <th className="pb-2 pr-4 font-medium">닉네임</th>
+                            <th className="pb-2 pr-4 font-medium">이메일</th>
+                            <th className="pb-2 pr-4 font-medium">InBody</th>
+                            <th className="pb-2 font-medium">목표</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {team.members.map((member) => (
+                            <tr
+                              key={member.userId}
+                              className="border-b border-gray-100 last:border-0 dark:border-gray-800"
+                            >
+                              <td className="py-2 pr-4 font-medium">
+                                {member.nickname}
+                              </td>
+                              <td className="py-2 pr-4 text-gray-600 dark:text-gray-400">
+                                {member.email}
+                              </td>
+                              <td className="py-2 pr-4">
+                                {member.hasInbody ? (
+                                  <span className="inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                    완료
+                                    {member.lastInbodyDate && (
+                                      <span className="ml-1 text-green-600 dark:text-green-500">
+                                        ({member.lastInbodyDate})
+                                      </span>
+                                    )}
+                                  </span>
+                                ) : (
+                                  <span className="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                                    미입력
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2">
+                                {member.hasGoals ? (
+                                  <span className="inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                    설정됨
+                                  </span>
+                                ) : (
+                                  <span className="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                                    미설정
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
