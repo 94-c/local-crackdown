@@ -93,6 +93,33 @@ class InBodyService(
         inBodyRecordRepository.delete(record)
     }
 
+    @Transactional
+    fun updateRecord(userId: String, recordId: String, request: InBodyRecordRequest): InBodyRecordResponse {
+        val userUuid = UUID.fromString(userId)
+        val recordUuid = UUID.fromString(recordId)
+        val record = inBodyRecordRepository.findById(recordUuid)
+            .orElseThrow { IllegalArgumentException("Record not found") }
+        require(record.userId == userUuid) { "You can only update your own records" }
+
+        require(request.skeletalMuscleMass + request.bodyFatMass <= request.weight) {
+            "Skeletal muscle mass + body fat mass cannot exceed weight"
+        }
+
+        val bodyFatPercentage = request.bodyFatMass
+            .divide(request.weight, 4, java.math.RoundingMode.HALF_UP)
+            .multiply(BigDecimal(100))
+            .setScale(2, java.math.RoundingMode.HALF_UP)
+
+        record.weight = request.weight
+        record.skeletalMuscleMass = request.skeletalMuscleMass
+        record.bodyFatPercentage = bodyFatPercentage
+        record.bodyFatMass = request.bodyFatMass
+        record.recordDate = request.recordDate
+
+        val saved = inBodyRecordRepository.save(record)
+        return toResponse(saved)
+    }
+
     private fun toResponse(record: InBodyRecord): InBodyRecordResponse {
         return InBodyRecordResponse(
             id = record.id.toString(),

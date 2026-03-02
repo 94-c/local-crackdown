@@ -26,6 +26,9 @@ export default function TeamPage() {
   const [progressLoading, setProgressLoading] = useState(false);
   const [progressError, setProgressError] = useState("");
 
+  // Delete mission
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   const [weekNumber, setWeekNumber] = useState(1);
 
   const fetchMission = useCallback(
@@ -135,6 +138,24 @@ export default function TeamPage() {
       );
     } finally {
       setProgressLoading(false);
+    }
+  };
+
+  const handleDeleteMission = async () => {
+    if (!mission) return;
+    if (!confirm("이 미션을 삭제하시겠습니까? 관련 인증 기록도 모두 삭제됩니다.")) return;
+    setDeleteLoading(true);
+    try {
+      await apiClient.delete(`/api/team-missions/${mission.id}`);
+      setMission(null);
+      toast.success("미션이 삭제되었습니다.");
+      // 미션 템플릿 다시 불러오기
+      const templates = await apiClient.get<MissionTemplate[]>("/api/mission-templates");
+      setMissionTemplates(templates);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "미션 삭제에 실패했습니다.");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -285,6 +306,16 @@ export default function TeamPage() {
                   </div>
                 </form>
               </div>
+
+              {/* Delete Mission */}
+              <button
+                type="button"
+                onClick={handleDeleteMission}
+                disabled={deleteLoading}
+                className="w-full rounded-lg border border-red-300 px-6 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+              >
+                {deleteLoading ? "삭제 중..." : "미션 삭제"}
+              </button>
 
               {/* Verifications List */}
               {mission.verifications && mission.verifications.length > 0 && (

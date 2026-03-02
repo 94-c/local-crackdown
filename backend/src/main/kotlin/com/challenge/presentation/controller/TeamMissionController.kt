@@ -45,4 +45,14 @@ class TeamMissionController(
     ): TeamMissionResponse {
         return teamMissionService.updateProgress(id, request)
     }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun deleteMission(
+        authentication: Authentication,
+        @PathVariable id: String
+    ) {
+        val userId = authentication.principal as String
+        teamMissionService.deleteMission(userId, id)
+    }
 }

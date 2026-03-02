@@ -19,6 +19,7 @@ export default function ProfilePage() {
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<InBodyRecord | null>(null);
 
   const fetchData = useCallback(async (cId: string) => {
     setError("");
@@ -183,7 +184,7 @@ export default function ProfilePage() {
             {challengeId && (
               <button
                 type="button"
-                onClick={() => setModalOpen(true)}
+                onClick={() => { setEditingRecord(null); setModalOpen(true); }}
                 className="rounded-lg bg-black px-4 py-2 text-sm text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
               >
                 인바디 기록 추가
@@ -207,13 +208,22 @@ export default function ProfilePage() {
                     <span className="text-xs text-gray-500 dark:text-gray-400">
                       {formatDate(record.recordDate)}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteInbody(record.id)}
-                      className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                    >
-                      삭제
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => { setEditingRecord(record); setModalOpen(true); }}
+                        className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        수정
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteInbody(record.id)}
+                        className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        삭제
+                      </button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-4 gap-2 text-center">
                     <div>
@@ -263,8 +273,9 @@ export default function ProfilePage() {
         <InBodyModal
           challengeId={challengeId}
           isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
+          onClose={() => { setModalOpen(false); setEditingRecord(null); }}
           onSuccess={handleModalSuccess}
+          editRecord={editingRecord ?? undefined}
         />
       )}
     </main>

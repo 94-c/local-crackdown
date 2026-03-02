@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiClient } from "@/lib/api-client";
 import { ErrorAlert, FormField } from "@/components/ui";
 import { validateNumber } from "@/lib/validation";
@@ -11,6 +11,7 @@ interface InBodyModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  editRecord?: InBodyRecord;
 }
 
 export default function InBodyModal({
@@ -18,6 +19,7 @@ export default function InBodyModal({
   isOpen,
   onClose,
   onSuccess,
+  editRecord,
 }: InBodyModalProps) {
   const today = new Date().toISOString().split("T")[0];
 
@@ -28,6 +30,22 @@ export default function InBodyModal({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
+
+  useEffect(() => {
+    if (editRecord) {
+      setRecordDate(editRecord.recordDate);
+      setWeight(String(editRecord.weight));
+      setMuscleMass(String(editRecord.skeletalMuscleMass));
+      setFatMass(editRecord.bodyFatMass != null ? String(editRecord.bodyFatMass) : "");
+    } else {
+      setRecordDate(today);
+      setWeight("");
+      setMuscleMass("");
+      setFatMass("");
+    }
+    setError("");
+    setFieldErrors({});
+  }, [editRecord, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fatPercentage =
     weight && fatMass
@@ -57,24 +75,29 @@ export default function InBodyModal({
 
     setLoading(true);
     try {
-      await apiClient.post<InBodyRecord>("/api/inbody", {
+      const payload = {
         challengeId,
         weight: parseFloat(weight),
         skeletalMuscleMass: parseFloat(muscleMass),
         bodyFatMass: parseFloat(fatMass),
         recordDate,
-      });
+      };
+
+      if (editRecord) {
+        await apiClient.put<InBodyRecord>(`/api/inbody/${editRecord.id}`, payload);
+      } else {
+        await apiClient.post<InBodyRecord>("/api/inbody", payload);
+      }
+
       onSuccess();
       onClose();
-      // Reset form
-      setWeight("");
-      setMuscleMass("");
-      setFatMass("");
-      setRecordDate(today);
-      setError("");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "인바디 등록에 실패했습니다"
+        err instanceof Error
+          ? err.message
+          : editRecord
+            ? "인바디 수정에 실패했습니다"
+            : "인바디 등록에 실패했습니다"
       );
     } finally {
       setLoading(false);
@@ -92,7 +115,9 @@ export default function InBodyModal({
         className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 dark:bg-gray-900"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-bold">인바디 기록 추가</h2>
+        <h2 className="text-xl font-bold">
+          {editRecord ? "인바디 기록 수정" : "인바디 기록 추가"}
+        </h2>
 
         {error && (
           <div className="mt-4">
@@ -191,7 +216,7 @@ export default function InBodyModal({
             disabled={loading || !weight || !muscleMass || !fatMass}
             className="flex-1 rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
           >
-            {loading ? "저장 중..." : "저장"}
+            {loading ? "저장 중..." : editRecord ? "수정" : "저장"}
           </button>
         </div>
       </div>

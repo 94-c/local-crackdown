@@ -30,4 +30,14 @@ class MissionVerificationController(
     ): List<VerificationResponse> {
         return missionVerificationService.getVerificationsByMission(teamMissionId)
     }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun deleteVerification(
+        authentication: Authentication,
+        @PathVariable id: String
+    ) {
+        val userId = authentication.principal as String
+        missionVerificationService.deleteVerification(userId, id)
+    }
 }

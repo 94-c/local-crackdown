@@ -82,6 +82,17 @@ class MissionVerificationService(
         missionVerificationRepository.save(verification)
     }
 
+    @Transactional
+    fun deleteVerification(userId: String, verificationId: String) {
+        val userUuid = UUID.fromString(userId)
+        val verificationUuid = UUID.fromString(verificationId)
+        val verification = missionVerificationRepository.findById(verificationUuid)
+            .orElseThrow { IllegalArgumentException("Verification not found") }
+        require(verification.user.id == userUuid) { "You can only delete your own verifications" }
+        require(!verification.verified) { "Cannot delete an already verified record" }
+        missionVerificationRepository.delete(verification)
+    }
+
     private fun toResponse(verification: MissionVerification): VerificationResponse {
         return VerificationResponse(
             id = verification.id.toString(),

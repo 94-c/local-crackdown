@@ -74,6 +74,23 @@ export default function VerifyPage() {
     }
   };
 
+  const handleDeleteVerification = async (verificationId: string) => {
+    if (!confirm("이 인증 기록을 삭제하시겠습니까?")) return;
+    try {
+      await apiClient.delete(`/api/verifications/${verificationId}`);
+      setMission((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          verifications: prev.verifications.filter((v) => v.id !== verificationId),
+        };
+      });
+      toast.success("인증 기록이 삭제되었습니다.");
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "삭제에 실패했습니다.");
+    }
+  };
+
   const handleSubmitVerification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mission) return;
@@ -316,6 +333,15 @@ export default function VerifyPage() {
                       <span className="text-xs text-gray-400">
                         {formatDate(v.createdAt)}
                       </span>
+                      {!v.verified && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteVerification(v.id)}
+                          className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          삭제
+                        </button>
+                      )}
                     </div>
                   </div>
                   {v.memo && (

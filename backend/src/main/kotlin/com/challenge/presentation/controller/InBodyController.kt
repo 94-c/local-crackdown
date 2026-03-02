@@ -33,6 +33,16 @@ class InBodyController(
         return inBodyService.getRecordsByUserAndChallenge(userId, challengeId)
     }
 
+    @PutMapping("/{id}")
+    fun updateRecord(
+        authentication: Authentication,
+        @PathVariable id: String,
+        @Valid @RequestBody request: InBodyRecordRequest
+    ): InBodyRecordResponse {
+        val userId = authentication.principal as String
+        return inBodyService.updateRecord(userId, id, request)
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteRecord(

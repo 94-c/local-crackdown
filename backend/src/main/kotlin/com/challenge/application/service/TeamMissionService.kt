@@ -88,6 +88,22 @@ class TeamMissionService(
         return toResponse(saved)
     }
 
+    @Transactional
+    fun deleteMission(userId: String, missionId: String) {
+        val userUuid = UUID.fromString(userId)
+        val missionUuid = UUID.fromString(missionId)
+        val mission = teamMissionRepository.findById(missionUuid)
+            .orElseThrow { IllegalArgumentException("Team mission not found") }
+
+        val team = mission.team
+        val isMember = team.member1.id == userUuid || team.member2?.id == userUuid
+        require(isMember) { "You can only delete missions from your own team" }
+
+        // 관련 인증 기록 먼저 삭제
+        missionVerificationRepository.deleteByTeamMissionId(missionUuid)
+        teamMissionRepository.delete(mission)
+    }
+
     private fun toResponse(mission: TeamMission): TeamMissionResponse {
         val verifications = missionVerificationRepository.findByTeamMissionId(mission.id!!)
             .map { v ->
