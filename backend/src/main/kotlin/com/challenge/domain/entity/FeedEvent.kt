@@ -26,13 +26,13 @@ class FeedEvent(
     val referenceId: UUID,
 
     @Column(nullable = false, length = 200)
-    val title: String,
+    var title: String,
 
     @Column(columnDefinition = "TEXT")
-    val description: String? = null,
+    var description: String? = null,
 
     @Column(name = "image_url", columnDefinition = "TEXT")
-    val imageUrl: String? = null,
+    var imageUrl: String? = null,
 
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: LocalDateTime = LocalDateTime.now()

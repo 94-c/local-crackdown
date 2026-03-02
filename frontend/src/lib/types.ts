@@ -183,7 +183,7 @@ export interface FeedEvent {
   userId: string;
   userNickname: string;
   userProfileImageUrl: string | null;
-  eventType: "MISSION_VERIFICATION" | "PENALTY_VERIFICATION" | "INBODY_RECORD" | "WEEKLY_ACHIEVEMENT";
+  eventType: "MISSION_VERIFICATION" | "PENALTY_VERIFICATION" | "INBODY_RECORD" | "WEEKLY_ACHIEVEMENT" | "USER_POST";
   referenceId: string;
   title: string;
   description: string | null;

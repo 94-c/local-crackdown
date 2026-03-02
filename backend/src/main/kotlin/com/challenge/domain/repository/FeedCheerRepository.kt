@@ -16,4 +16,6 @@ interface FeedCheerRepository : JpaRepository<FeedCheer, UUID> {
 
     @Query("SELECT fc.feedEventId FROM FeedCheer fc WHERE fc.feedEventId IN :feedEventIds AND fc.userId = :userId")
     fun findCheeredEventIds(@Param("feedEventIds") feedEventIds: List<UUID>, @Param("userId") userId: UUID): List<UUID>
+
+    fun deleteByFeedEventId(feedEventId: UUID)
 }

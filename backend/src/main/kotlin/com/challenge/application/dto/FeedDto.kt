@@ -30,3 +30,26 @@ data class CheerToggleResponse(
     val cheered: Boolean,
     val cheerCount: Long
 )
+
+data class CreateFeedPostRequest(
+    @field:jakarta.validation.constraints.NotBlank
+    val challengeId: String,
+
+    @field:jakarta.validation.constraints.NotBlank
+    @field:jakarta.validation.constraints.Size(max = 200)
+    val title: String,
+
+    val description: String? = null,
+
+    val imageUrl: String? = null
+)
+
+data class UpdateFeedPostRequest(
+    @field:jakarta.validation.constraints.NotBlank
+    @field:jakarta.validation.constraints.Size(max = 200)
+    val title: String,
+
+    val description: String? = null,
+
+    val imageUrl: String? = null
+)

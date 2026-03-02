@@ -1,12 +1,15 @@
 package com.challenge.application.service
 
+import com.challenge.application.dto.CreateFeedPostRequest
 import com.challenge.application.dto.FeedEventResponse
 import com.challenge.application.dto.FeedPageResponse
+import com.challenge.application.dto.UpdateFeedPostRequest
 import com.challenge.domain.entity.FeedEvent
 import com.challenge.domain.entity.FeedEventType
 import com.challenge.domain.entity.User
 import com.challenge.domain.repository.FeedCheerRepository
 import com.challenge.domain.repository.FeedEventRepository
+import com.challenge.domain.repository.UserRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -15,7 +18,8 @@ import java.util.UUID
 @Service
 class FeedEventService(
     private val feedEventRepository: FeedEventRepository,
-    private val feedCheerRepository: FeedCheerRepository
+    private val feedCheerRepository: FeedCheerRepository,
+    private val userRepository: UserRepository
 ) {
 
     @Transactional
@@ -87,5 +91,87 @@ class FeedEventService(
             totalPages = feedPage.totalPages,
             hasNext = feedPage.hasNext()
         )
+    }
+
+    @Transactional
+    fun createPost(userId: String, request: CreateFeedPostRequest): FeedEventResponse {
+        val userUuid = UUID.fromString(userId)
+        val challengeUuid = UUID.fromString(request.challengeId)
+        val user = userRepository.findById(userUuid)
+            .orElseThrow { IllegalArgumentException("User not found") }
+
+        val event = FeedEvent(
+            challengeId = challengeUuid,
+            user = user,
+            eventType = FeedEventType.USER_POST,
+            referenceId = userUuid,
+            title = request.title,
+            description = request.description,
+            imageUrl = request.imageUrl
+        )
+        val saved = feedEventRepository.save(event)
+
+        return FeedEventResponse(
+            id = saved.id.toString(),
+            userId = user.id.toString(),
+            userNickname = user.nickname,
+            userProfileImageUrl = user.profileImageUrl,
+            eventType = saved.eventType.name,
+            referenceId = saved.referenceId.toString(),
+            title = saved.title,
+            description = saved.description,
+            imageUrl = saved.imageUrl,
+            cheerCount = 0L,
+            cheeredByMe = false,
+            createdAt = saved.createdAt
+        )
+    }
+
+    @Transactional
+    fun updatePost(userId: String, feedEventId: String, request: UpdateFeedPostRequest): FeedEventResponse {
+        val userUuid = UUID.fromString(userId)
+        val eventUuid = UUID.fromString(feedEventId)
+        val event = feedEventRepository.findById(eventUuid)
+            .orElseThrow { IllegalArgumentException("Feed event not found") }
+
+        require(event.user.id == userUuid) { "You can only edit your own posts" }
+        require(event.eventType == FeedEventType.USER_POST) { "Only manual posts can be edited" }
+
+        event.title = request.title
+        event.description = request.description
+        event.imageUrl = request.imageUrl
+
+        val saved = feedEventRepository.save(event)
+
+        val cheerCount = feedCheerRepository.countByFeedEventId(saved.id!!)
+        val cheeredByMe = feedCheerRepository.existsByFeedEventIdAndUserId(saved.id!!, userUuid)
+
+        return FeedEventResponse(
+            id = saved.id.toString(),
+            userId = saved.user.id.toString(),
+            userNickname = saved.user.nickname,
+            userProfileImageUrl = saved.user.profileImageUrl,
+            eventType = saved.eventType.name,
+            referenceId = saved.referenceId.toString(),
+            title = saved.title,
+            description = saved.description,
+            imageUrl = saved.imageUrl,
+            cheerCount = cheerCount,
+            cheeredByMe = cheeredByMe,
+            createdAt = saved.createdAt
+        )
+    }
+
+    @Transactional
+    fun deleteEvent(userId: String, feedEventId: String) {
+        val userUuid = UUID.fromString(userId)
+        val eventUuid = UUID.fromString(feedEventId)
+        val event = feedEventRepository.findById(eventUuid)
+            .orElseThrow { IllegalArgumentException("Feed event not found") }
+
+        require(event.user.id == userUuid) { "You can only delete your own posts" }
+
+        feedCheerRepository.deleteByFeedEventId(eventUuid)
+        feedEventRepository.delete(event)
     }
 }

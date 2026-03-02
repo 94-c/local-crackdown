@@ -1,9 +1,14 @@
 package com.challenge.presentation.controller
 
 import com.challenge.application.dto.CheerToggleResponse
+import com.challenge.application.dto.CreateFeedPostRequest
+import com.challenge.application.dto.FeedEventResponse
 import com.challenge.application.dto.FeedPageResponse
+import com.challenge.application.dto.UpdateFeedPostRequest
 import com.challenge.application.service.FeedCheerService
 import com.challenge.application.service.FeedEventService
+import jakarta.validation.Valid
+import org.springframework.http.HttpStatus
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 
@@ -32,5 +37,35 @@ class FeedController(
     ): CheerToggleResponse {
         val userId = authentication.principal as String
         return feedCheerService.toggleCheer(feedEventId, userId)
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    fun createPost(
+        authentication: Authentication,
+        @Valid @RequestBody request: CreateFeedPostRequest
+    ): FeedEventResponse {
+        val userId = authentication.principal as String
+        return feedEventService.createPost(userId, request)
+    }
+
+    @PutMapping("/{id}")
+    fun updatePost(
+        authentication: Authentication,
+        @PathVariable id: String,
+        @Valid @RequestBody request: UpdateFeedPostRequest
+    ): FeedEventResponse {
+        val userId = authentication.principal as String
+        return feedEventService.updatePost(userId, id, request)
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun deleteEvent(
+        authentication: Authentication,
+        @PathVariable id: String
+    ) {
+        val userId = authentication.principal as String
+        feedEventService.deleteEvent(userId, id)
     }
 }
