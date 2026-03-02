@@ -2,6 +2,7 @@ package com.challenge.application.service
 
 import com.challenge.application.dto.InBodyRecordRequest
 import com.challenge.application.dto.InBodyRecordResponse
+import com.challenge.domain.entity.FeedEventType
 import com.challenge.domain.entity.InBodyRecord
 import com.challenge.domain.repository.ChallengeRepository
 import com.challenge.domain.repository.InBodyRecordRepository
@@ -16,7 +17,8 @@ import java.util.UUID
 class InBodyService(
     private val inBodyRecordRepository: InBodyRecordRepository,
     private val userRepository: UserRepository,
-    private val challengeRepository: ChallengeRepository
+    private val challengeRepository: ChallengeRepository,
+    private val feedEventService: FeedEventService
 ) {
 
     @Transactional
@@ -24,7 +26,7 @@ class InBodyService(
         val userUuid = UUID.fromString(userId)
         val challengeUuid = UUID.fromString(request.challengeId)
 
-        userRepository.findById(userUuid)
+        val user = userRepository.findById(userUuid)
             .orElseThrow { IllegalArgumentException("User not found") }
         challengeRepository.findById(challengeUuid)
             .orElseThrow { IllegalArgumentException("Challenge not found") }
@@ -48,6 +50,18 @@ class InBodyService(
             recordDate = request.recordDate
         )
         val saved = inBodyRecordRepository.save(record)
+
+        // 피드 이벤트 생성
+        feedEventService.publishEvent(
+            challengeId = challengeUuid,
+            user = user,
+            eventType = FeedEventType.INBODY_RECORD,
+            referenceId = saved.id!!,
+            title = "${user.nickname}님이 인바디를 기록했습니다",
+            description = "체중 ${saved.weight}kg, 골격근량 ${saved.skeletalMuscleMass}kg",
+            imageUrl = null
+        )
+
         return toResponse(saved)
     }
 

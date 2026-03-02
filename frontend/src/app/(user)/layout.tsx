@@ -1,5 +1,6 @@
 import { UserNav } from "./user-nav";
 import { UserGuard } from "./user-guard";
+import { PushNotificationRegister } from "@/components/push-notification-register";
 
 export default function UserLayout({
   children,
@@ -16,6 +17,7 @@ export default function UserLayout({
         </header>
         <main className="mx-auto max-w-lg md:max-w-2xl lg:max-w-3xl px-4 py-6">{children}</main>
         <UserNav />
+        <PushNotificationRegister />
       </div>
     </UserGuard>
   );

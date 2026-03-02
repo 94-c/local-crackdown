@@ -1,6 +1,7 @@
 package com.challenge.application.service
 
 import com.challenge.application.dto.*
+import com.challenge.domain.entity.FeedEventType
 import com.challenge.domain.entity.WeeklySnapshot
 import com.challenge.domain.repository.*
 import org.springframework.stereotype.Service
@@ -16,7 +17,9 @@ class WeeklyCloseService(
     private val teamRepository: TeamRepository,
     private val userGoalRepository: UserGoalRepository,
     private val goalTypeRepository: GoalTypeRepository,
-    private val inBodyRecordRepository: InBodyRecordRepository
+    private val inBodyRecordRepository: InBodyRecordRepository,
+    private val feedEventService: FeedEventService,
+    private val pushNotificationService: PushNotificationService
 ) {
 
     @Transactional
@@ -109,7 +112,32 @@ class WeeklyCloseService(
         }
         weeklySnapshotRepository.saveAll(snapshots)
 
-        // 8. 챌린지 currentWeek 업데이트
+        // 8. 피드 이벤트 + 푸시 알림
+        val processedTeams = mutableSetOf<UUID>()
+        for (snapshot in snapshots) {
+            if (snapshot.team.id!! in processedTeams) continue
+            processedTeams.add(snapshot.team.id!!)
+
+            feedEventService.publishEvent(
+                challengeId = challengeId,
+                user = snapshot.user,
+                eventType = FeedEventType.WEEKLY_ACHIEVEMENT,
+                referenceId = snapshot.id!!,
+                title = "${snapshot.team.name} ${weekNumber}주차 결과",
+                description = "팀 점수 ${snapshot.teamScore}점, ${snapshot.teamRank}위",
+                imageUrl = null
+            )
+        }
+
+        val allUserIds = snapshots.map { it.user.id!! }.distinct()
+        pushNotificationService.sendToUsers(
+            userIds = allUserIds,
+            title = "${weekNumber}주차 마감 완료",
+            body = "주간 결과가 발표되었습니다!",
+            url = "/result"
+        )
+
+        // 9. 챌린지 currentWeek 업데이트
         challenge.currentWeek = weekNumber + 1
         challengeRepository.save(challenge)
 

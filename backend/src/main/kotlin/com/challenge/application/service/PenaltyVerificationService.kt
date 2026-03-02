@@ -2,6 +2,7 @@ package com.challenge.application.service
 
 import com.challenge.application.dto.CreatePenaltyVerificationRequest
 import com.challenge.application.dto.PenaltyVerificationResponse
+import com.challenge.domain.entity.FeedEventType
 import com.challenge.domain.entity.PenaltyVerification
 import com.challenge.domain.repository.PenaltyMissionRepository
 import com.challenge.domain.repository.PenaltyVerificationRepository
@@ -14,7 +15,8 @@ import java.util.UUID
 class PenaltyVerificationService(
     private val penaltyVerificationRepository: PenaltyVerificationRepository,
     private val penaltyMissionRepository: PenaltyMissionRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val feedEventService: FeedEventService
 ) {
 
     @Transactional
@@ -37,6 +39,18 @@ class PenaltyVerificationService(
         )
 
         val saved = penaltyVerificationRepository.save(verification)
+
+        // 피드 이벤트 생성
+        feedEventService.publishEvent(
+            challengeId = penaltyMission.challenge.id!!,
+            user = user,
+            eventType = FeedEventType.PENALTY_VERIFICATION,
+            referenceId = saved.id!!,
+            title = "${user.nickname}님이 벌칙 미션을 수행했습니다",
+            description = request.memo,
+            imageUrl = null
+        )
+
         return toResponse(saved)
     }
 

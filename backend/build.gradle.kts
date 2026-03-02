@@ -43,6 +43,10 @@ dependencies {
     // AWS S3
     implementation("software.amazon.awssdk:s3:2.29.45")
 
+    // Web Push
+    implementation("nl.martijndwars:web-push:5.1.1")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
+
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")

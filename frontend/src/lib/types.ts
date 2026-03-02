@@ -176,3 +176,33 @@ export interface NotificationItem {
   link: string | null;
   createdAt: string;
 }
+
+// Phase 2: Feed
+export interface FeedEvent {
+  id: string;
+  userId: string;
+  userNickname: string;
+  userProfileImageUrl: string | null;
+  eventType: "MISSION_VERIFICATION" | "PENALTY_VERIFICATION" | "INBODY_RECORD" | "WEEKLY_ACHIEVEMENT";
+  referenceId: string;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  cheerCount: number;
+  cheeredByMe: boolean;
+  createdAt: string;
+}
+
+export interface FeedPage {
+  content: FeedEvent[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+}
+
+export interface CheerToggleResult {
+  cheered: boolean;
+  cheerCount: number;
+}
