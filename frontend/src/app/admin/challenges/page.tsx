@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
-import type { Challenge } from "@/lib/types";
+import type { Challenge, GoalType } from "@/lib/types";
 import { LoadingSkeleton, ErrorAlert, EmptyState, useToast } from "@/components/ui";
 
 function CopyInviteButton({ inviteCode }: { inviteCode: string }) {
@@ -44,8 +44,10 @@ export default function ChallengesPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-
+  const [durationDays, setDurationDays] = useState("28");
+  const [inbodyFrequencyDays, setInbodyFrequencyDays] = useState("7");
+  const [availableGoalTypes, setAvailableGoalTypes] = useState<GoalType[]>([]);
+  const [selectedGoalTypeIds, setSelectedGoalTypeIds] = useState<string[]>([]);
 
   const fetchChallenges = useCallback(async () => {
     try {
@@ -62,15 +64,27 @@ export default function ChallengesPage() {
     }
   }, []);
 
+  const fetchGoalTypes = useCallback(async () => {
+    try {
+      const data = await apiClient.get<GoalType[]>("/api/goal-types");
+      setAvailableGoalTypes(data);
+    } catch {
+      // silently fail — goal types are optional
+    }
+  }, []);
+
   useEffect(() => {
     fetchChallenges();
-  }, [fetchChallenges]);
+    fetchGoalTypes();
+  }, [fetchChallenges, fetchGoalTypes]);
 
   const resetForm = () => {
     setTitle("");
     setDescription("");
     setStartDate("");
-    setEndDate("");
+    setDurationDays("28");
+    setInbodyFrequencyDays("7");
+    setSelectedGoalTypeIds([]);
     setShowForm(false);
   };
 
@@ -83,7 +97,9 @@ export default function ChallengesPage() {
         title,
         description: description || null,
         startDate,
-        endDate,
+        durationDays: parseInt(durationDays),
+        inbodyFrequencyDays: parseInt(inbodyFrequencyDays),
+        goalTypeIds: selectedGoalTypeIds,
       });
       toast.success("챌린지가 생성되었습니다.");
       resetForm();
@@ -210,22 +226,78 @@ export default function ChallengesPage() {
               />
             </div>
             <div>
-              <label
-                htmlFor="endDate"
-                className="block text-sm font-medium"
-              >
-                종료일
+              <label htmlFor="durationDays" className="block text-sm font-medium">
+                챌린지 기간 (일)
               </label>
               <input
-                id="endDate"
-                type="date"
+                id="durationDays"
+                type="number"
                 required
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                min={1}
+                value={durationDays}
+                onChange={(e) => setDurationDays(e.target.value)}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+                placeholder="예: 28"
               />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                시작일로부터 {durationDays || 0}일 후 종료
+              </p>
             </div>
           </div>
+
+          <div>
+            <label htmlFor="inbodyFrequency" className="block text-sm font-medium">
+              인바디 등록 주기 (일)
+            </label>
+            <select
+              id="inbodyFrequency"
+              value={inbodyFrequencyDays}
+              onChange={(e) => setInbodyFrequencyDays(e.target.value)}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+            >
+              <option value="3">3일마다</option>
+              <option value="5">5일마다</option>
+              <option value="7">7일마다 (주 1회)</option>
+              <option value="14">14일마다 (격주)</option>
+            </select>
+          </div>
+
+          {availableGoalTypes.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium">목표 유형 선택</label>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                참가자가 설정할 수 있는 목표를 선택하세요
+              </p>
+              <div className="mt-2 space-y-2">
+                {availableGoalTypes.map((gt) => (
+                  <label
+                    key={gt.id}
+                    className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedGoalTypeIds.includes(gt.id)}
+                      onChange={() => {
+                        setSelectedGoalTypeIds((prev) =>
+                          prev.includes(gt.id)
+                            ? prev.filter((id) => id !== gt.id)
+                            : [...prev, gt.id]
+                        );
+                      }}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <div>
+                      <span className="font-medium">{gt.name}</span>
+                      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">({gt.unit})</span>
+                      {gt.description && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{gt.description}</p>
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -269,10 +341,22 @@ export default function ChallengesPage() {
                   )}
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
                     <span>
-                      기간: {challenge.startDate} ~ {challenge.endDate}
+                      기간: {challenge.startDate} ~ {challenge.endDate}{challenge.durationDays ? ` (${challenge.durationDays}일)` : ""}
                     </span>
                     <span>현재 주차: {challenge.currentWeek}주</span>
                   </div>
+                  {challenge.goalTypes && challenge.goalTypes.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {challenge.goalTypes.map((gt) => (
+                        <span
+                          key={gt.id}
+                          className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                        >
+                          {gt.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </Link>
                 <div className="flex shrink-0 items-center gap-2">
                   <CopyInviteButton inviteCode={challenge.inviteCode} />

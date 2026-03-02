@@ -1,13 +1,16 @@
 package com.challenge.application.service
 
 import com.challenge.application.dto.GoalTypeResponse
+import com.challenge.domain.repository.ChallengeRepository
 import com.challenge.domain.repository.GoalTypeRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.UUID
 
 @Service
 class GoalTypeService(
-    private val goalTypeRepository: GoalTypeRepository
+    private val goalTypeRepository: GoalTypeRepository,
+    private val challengeRepository: ChallengeRepository
 ) {
 
     @Transactional(readOnly = true)
@@ -20,6 +23,15 @@ class GoalTypeService(
                 description = it.description,
                 directionIsDecrease = it.directionIsDecrease
             )
+        }
+    }
+
+    @Transactional(readOnly = true)
+    fun getGoalTypesByChallenge(challengeId: String): List<GoalTypeResponse> {
+        val challenge = challengeRepository.findById(UUID.fromString(challengeId))
+            .orElseThrow { IllegalArgumentException("Challenge not found") }
+        return challenge.goalTypes.map {
+            GoalTypeResponse(it.id.toString(), it.name, it.unit, it.description, it.directionIsDecrease)
         }
     }
 }

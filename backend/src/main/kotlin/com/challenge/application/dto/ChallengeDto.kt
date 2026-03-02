@@ -17,7 +17,11 @@ data class CreateChallengeRequest(
     val startDate: LocalDate,
 
     @field:NotNull
-    val endDate: LocalDate
+    val durationDays: Int,
+
+    val inbodyFrequencyDays: Int = 7,
+
+    val goalTypeIds: List<String> = emptyList()
 )
 
 data class UpdateChallengeRequest(
@@ -28,9 +32,13 @@ data class UpdateChallengeRequest(
 
     val startDate: LocalDate? = null,
 
-    val endDate: LocalDate? = null,
+    val durationDays: Int? = null,
 
-    val status: String? = null
+    val inbodyFrequencyDays: Int? = null,
+
+    val status: String? = null,
+
+    val goalTypeIds: List<String>? = null
 )
 
 data class ChallengeResponse(
@@ -40,8 +48,11 @@ data class ChallengeResponse(
     val inviteCode: String,
     val startDate: LocalDate,
     val endDate: LocalDate,
+    val durationDays: Int,
+    val inbodyFrequencyDays: Int,
     val currentWeek: Int,
     val status: String,
+    val goalTypes: List<GoalTypeResponse>,
     val createdAt: LocalDateTime
 )
 
@@ -51,6 +62,8 @@ data class ChallengeInviteResponse(
     val description: String?,
     val startDate: LocalDate,
     val endDate: LocalDate,
+    val durationDays: Int,
+    val inbodyFrequencyDays: Int,
     val status: String
 )
 

@@ -5,8 +5,11 @@ export interface Challenge {
   inviteCode: string;
   startDate: string;
   endDate: string;
+  durationDays: number;
+  inbodyFrequencyDays: number;
   currentWeek: number;
   status: "PREPARING" | "ACTIVE" | "COMPLETED";
+  goalTypes: GoalType[];
   createdAt: string;
 }
 
@@ -152,6 +155,8 @@ export interface ChallengeInvite {
   description: string | null;
   startDate: string;
   endDate: string;
+  durationDays: number;
+  inbodyFrequencyDays: number;
   status: string;
 }
 

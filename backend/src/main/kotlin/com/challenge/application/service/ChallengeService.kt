@@ -21,21 +21,28 @@ class ChallengeService(
     private val penaltyMissionRepository: PenaltyMissionRepository,
     private val penaltyVerificationRepository: PenaltyVerificationRepository,
     private val finalScoreRepository: FinalScoreRepository,
-    private val challengeParticipantRepository: ChallengeParticipantRepository
+    private val challengeParticipantRepository: ChallengeParticipantRepository,
+    private val goalTypeRepository: GoalTypeRepository
 ) {
 
     @Transactional
     fun createChallenge(request: CreateChallengeRequest): ChallengeResponse {
-        require(request.endDate.isAfter(request.startDate)) {
-            "End date must be after start date"
-        }
+        val endDate = request.startDate.plusDays(request.durationDays.toLong())
 
         val challenge = Challenge(
             title = request.title,
             description = request.description,
             startDate = request.startDate,
-            endDate = request.endDate
+            endDate = endDate,
+            durationDays = request.durationDays,
+            inbodyFrequencyDays = request.inbodyFrequencyDays
         )
+
+        if (request.goalTypeIds.isNotEmpty()) {
+            val goalTypes = goalTypeRepository.findAllById(request.goalTypeIds.map { UUID.fromString(it) })
+            challenge.goalTypes.addAll(goalTypes)
+        }
+
         val saved = challengeRepository.save(challenge)
         return toResponse(saved)
     }
@@ -62,6 +69,8 @@ class ChallengeService(
             description = challenge.description,
             startDate = challenge.startDate,
             endDate = challenge.endDate,
+            durationDays = challenge.durationDays,
+            inbodyFrequencyDays = challenge.inbodyFrequencyDays,
             status = challenge.status.name
         )
     }
@@ -73,9 +82,23 @@ class ChallengeService(
 
         request.title?.let { challenge.title = it }
         request.description?.let { challenge.description = it }
-        request.startDate?.let { challenge.startDate = it }
-        request.endDate?.let { challenge.endDate = it }
+        request.startDate?.let {
+            challenge.startDate = it
+            challenge.endDate = it.plusDays(challenge.durationDays.toLong())
+        }
+        request.durationDays?.let {
+            challenge.durationDays = it
+            challenge.endDate = challenge.startDate.plusDays(it.toLong())
+        }
+        request.inbodyFrequencyDays?.let { challenge.inbodyFrequencyDays = it }
         request.status?.let { challenge.status = ChallengeStatus.valueOf(it) }
+        request.goalTypeIds?.let { ids ->
+            challenge.goalTypes.clear()
+            if (ids.isNotEmpty()) {
+                val goalTypes = goalTypeRepository.findAllById(ids.map { UUID.fromString(it) })
+                challenge.goalTypes.addAll(goalTypes)
+            }
+        }
         challenge.updatedAt = LocalDateTime.now()
 
         val saved = challengeRepository.save(challenge)
@@ -165,8 +188,11 @@ class ChallengeService(
             inviteCode = challenge.inviteCode,
             startDate = challenge.startDate,
             endDate = challenge.endDate,
+            durationDays = challenge.durationDays,
+            inbodyFrequencyDays = challenge.inbodyFrequencyDays,
             currentWeek = challenge.currentWeek,
             status = challenge.status.name,
+            goalTypes = challenge.goalTypes.map { GoalTypeResponse(it.id.toString(), it.name, it.unit, it.description, it.directionIsDecrease) },
             createdAt = challenge.createdAt
         )
     }

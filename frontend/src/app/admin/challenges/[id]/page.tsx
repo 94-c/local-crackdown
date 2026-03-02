@@ -50,7 +50,8 @@ export default function ChallengeDetailPage() {
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editStartDate, setEditStartDate] = useState("");
-  const [editEndDate, setEditEndDate] = useState("");
+  const [editDurationDays, setEditDurationDays] = useState("28");
+  const [editInbodyFrequencyDays, setEditInbodyFrequencyDays] = useState("7");
   const [editLoading, setEditLoading] = useState(false);
 
   // Copy feedback
@@ -63,7 +64,8 @@ export default function ChallengeDetailPage() {
       setEditTitle(data.title);
       setEditDescription(data.description || "");
       setEditStartDate(data.startDate);
-      setEditEndDate(data.endDate);
+      setEditDurationDays(data.durationDays?.toString() || "28");
+      setEditInbodyFrequencyDays(data.inbodyFrequencyDays?.toString() || "7");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "챌린지 정보를 불러올 수 없습니다"
@@ -115,7 +117,8 @@ export default function ChallengeDetailPage() {
         title: editTitle,
         description: editDescription || null,
         startDate: editStartDate,
-        endDate: editEndDate,
+        durationDays: parseInt(editDurationDays),
+        inbodyFrequencyDays: parseInt(editInbodyFrequencyDays),
       });
       toast.success("챌린지가 수정되었습니다.");
       setEditing(false);
@@ -261,10 +264,25 @@ export default function ChallengeDetailPage() {
                 )}
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
                   <span>
-                    기간: {challenge.startDate} ~ {challenge.endDate}
+                    기간: {challenge.startDate} ~ {challenge.endDate}{challenge.durationDays ? ` (${challenge.durationDays}일)` : ""}
                   </span>
+                  {challenge.inbodyFrequencyDays && (
+                    <span>인바디 주기: {challenge.inbodyFrequencyDays}일</span>
+                  )}
                   <span>현재 주차: {challenge.currentWeek}주</span>
                 </div>
+                {challenge.goalTypes && challenge.goalTypes.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {challenge.goalTypes.map((gt) => (
+                      <span
+                        key={gt.id}
+                        className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                      >
+                        {gt.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => setEditing(true)}
@@ -326,21 +344,40 @@ export default function ChallengeDetailPage() {
                 />
               </div>
               <div>
-                <label
-                  htmlFor="editEndDate"
-                  className="block text-sm font-medium"
-                >
-                  종료일
+                <label htmlFor="editDurationDays" className="block text-sm font-medium">
+                  챌린지 기간 (일)
                 </label>
                 <input
-                  id="editEndDate"
-                  type="date"
+                  id="editDurationDays"
+                  type="number"
                   required
-                  value={editEndDate}
-                  onChange={(e) => setEditEndDate(e.target.value)}
+                  min={1}
+                  value={editDurationDays}
+                  onChange={(e) => setEditDurationDays(e.target.value)}
                   className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+                  placeholder="예: 28"
                 />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  시작일로부터 {editDurationDays || 0}일 후 종료
+                </p>
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="editInbodyFrequency" className="block text-sm font-medium">
+                인바디 등록 주기 (일)
+              </label>
+              <select
+                id="editInbodyFrequency"
+                value={editInbodyFrequencyDays}
+                onChange={(e) => setEditInbodyFrequencyDays(e.target.value)}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
+              >
+                <option value="3">3일마다</option>
+                <option value="5">5일마다</option>
+                <option value="7">7일마다 (주 1회)</option>
+                <option value="14">14일마다 (격주)</option>
+              </select>
             </div>
 
             <div className="flex gap-2">
@@ -358,7 +395,8 @@ export default function ChallengeDetailPage() {
                   setEditTitle(challenge.title);
                   setEditDescription(challenge.description || "");
                   setEditStartDate(challenge.startDate);
-                  setEditEndDate(challenge.endDate);
+                  setEditDurationDays(challenge.durationDays?.toString() || "28");
+                  setEditInbodyFrequencyDays(challenge.inbodyFrequencyDays?.toString() || "7");
                 }}
                 className="rounded-lg border border-gray-300 px-6 py-3 text-sm font-medium transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
               >

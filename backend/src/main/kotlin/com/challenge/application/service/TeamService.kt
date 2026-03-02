@@ -19,7 +19,9 @@ class TeamService(
     private val teamRepository: TeamRepository,
     private val challengeRepository: ChallengeRepository,
     private val userRepository: UserRepository,
-    private val participantRepository: ChallengeParticipantRepository
+    private val participantRepository: ChallengeParticipantRepository,
+    private val notificationService: NotificationService,
+    private val pushNotificationService: PushNotificationService
 ) {
 
     @Transactional
@@ -74,6 +76,7 @@ class TeamService(
         if (unassigned.isEmpty()) return emptyList()
 
         val newTeams = mutableListOf<TeamResponse>()
+        val assignedMemberIds = mutableListOf<UUID>()
         val baseNumber = existingTeams.size + 1
         var teamIndex = 0
 
@@ -85,8 +88,25 @@ class TeamService(
                 member2 = if (chunk.size > 1) chunk[1] else null
             )
             newTeams.add(toResponse(teamRepository.save(team)))
+            assignedMemberIds.addAll(chunk.mapNotNull { it.id })
             teamIndex++
         }
+
+        for (memberId in assignedMemberIds) {
+            notificationService.create(
+                userId = memberId,
+                title = "팀 배정 완료",
+                message = "${challenge.title}의 팀이 배정되었습니다. 팀 페이지에서 확인하세요.",
+                type = "TEAM_ASSIGNED",
+                link = "/team"
+            )
+        }
+        pushNotificationService.sendToUsers(
+            assignedMemberIds,
+            "팀 배정 완료",
+            "${challenge.title}의 팀이 배정되었습니다.",
+            "/team"
+        )
 
         return newTeams
     }

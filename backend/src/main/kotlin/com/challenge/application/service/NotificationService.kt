@@ -4,21 +4,21 @@ import com.challenge.application.dto.NotificationCountResponse
 import com.challenge.application.dto.NotificationResponse
 import com.challenge.application.dto.ReminderResult
 import com.challenge.domain.entity.Notification
+import com.challenge.domain.repository.ChallengeRepository
 import com.challenge.domain.repository.InBodyRecordRepository
 import com.challenge.domain.repository.NotificationRepository
 import com.challenge.domain.repository.TeamRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.temporal.TemporalAdjusters
 import java.util.UUID
 
 @Service
 class NotificationService(
     private val notificationRepository: NotificationRepository,
     private val teamRepository: TeamRepository,
-    private val inBodyRecordRepository: InBodyRecordRepository
+    private val inBodyRecordRepository: InBodyRecordRepository,
+    private val challengeRepository: ChallengeRepository
 ) {
 
     @Transactional
@@ -35,8 +35,10 @@ class NotificationService(
 
     @Transactional
     fun sendReminders(challengeId: UUID): ReminderResult {
+        val challenge = challengeRepository.findById(challengeId)
+            .orElseThrow { IllegalArgumentException("Challenge not found") }
         val teams = teamRepository.findByChallengeId(challengeId)
-        val monday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val sinceDate = LocalDate.now().minusDays(challenge.inbodyFrequencyDays.toLong())
 
         val memberIds = teams.flatMap { team ->
             listOfNotNull(team.member1.id, team.member2?.id)
@@ -45,14 +47,14 @@ class NotificationService(
         var sentCount = 0
         for (userId in memberIds) {
             val hasRecord = inBodyRecordRepository
-                .existsByUserIdAndChallengeIdAndRecordDateGreaterThanEqual(userId, challengeId, monday)
+                .existsByUserIdAndChallengeIdAndRecordDateGreaterThanEqual(userId, challengeId, sinceDate)
             if (!hasRecord) {
                 create(
                     userId = userId,
                     title = "인바디 기록 알림",
-                    message = "이번 주 인바디 기록을 입력해주세요.",
+                    message = "인바디 기록을 입력해주세요. (${challenge.inbodyFrequencyDays}일마다 등록)",
                     type = "REMINDER",
-                    link = "/inbody"
+                    link = "/profile"
                 )
                 sentCount++
             }

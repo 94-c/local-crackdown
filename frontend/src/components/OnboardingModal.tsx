@@ -55,7 +55,7 @@ export default function OnboardingModal({
       setInitialLoading(true);
       try {
         const [types, profile] = await Promise.all([
-          apiClient.get<GoalType[]>("/api/goal-types"),
+          apiClient.get<GoalType[]>(`/api/goal-types?challengeId=${challengeId}`),
           apiClient.get<UserProfile>("/api/users/profile"),
         ]);
         setGoalTypes(types);

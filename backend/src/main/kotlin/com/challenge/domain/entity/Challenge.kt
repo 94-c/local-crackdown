@@ -27,6 +27,12 @@ class Challenge(
     @Column(name = "end_date", nullable = false)
     var endDate: LocalDate,
 
+    @Column(name = "duration_days", nullable = false)
+    var durationDays: Int = 28,
+
+    @Column(name = "inbody_frequency_days", nullable = false)
+    var inbodyFrequencyDays: Int = 7,
+
     @Column(name = "current_week", nullable = false)
     var currentWeek: Int = 0,
 
@@ -40,6 +46,14 @@ class Challenge(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now()
 ) {
+    @ManyToMany
+    @JoinTable(
+        name = "challenge_goal_types",
+        joinColumns = [JoinColumn(name = "challenge_id")],
+        inverseJoinColumns = [JoinColumn(name = "goal_type_id")]
+    )
+    var goalTypes: MutableSet<GoalType> = mutableSetOf()
+
     companion object {
         private val ALPHANUMERIC = ('A'..'Z') + ('a'..'z') + ('0'..'9')
 
