@@ -10,4 +10,5 @@ interface InBodyRecordRepository : JpaRepository<InBodyRecord, UUID> {
     fun findFirstByUserIdAndChallengeIdOrderByRecordDateDesc(userId: UUID, challengeId: UUID): InBodyRecord?
     fun existsByUserIdAndChallengeId(userId: UUID, challengeId: UUID): Boolean
     fun existsByUserIdAndChallengeIdAndRecordDateGreaterThanEqual(userId: UUID, challengeId: UUID, recordDate: LocalDate): Boolean
+    fun deleteByChallengeId(challengeId: UUID?)
 }

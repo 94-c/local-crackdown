@@ -3,10 +3,7 @@ package com.challenge.application.service
 import com.challenge.application.dto.*
 import com.challenge.domain.entity.Challenge
 import com.challenge.domain.entity.ChallengeStatus
-import com.challenge.domain.repository.ChallengeRepository
-import com.challenge.domain.repository.InBodyRecordRepository
-import com.challenge.domain.repository.TeamRepository
-import com.challenge.domain.repository.UserGoalRepository
+import com.challenge.domain.repository.*
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -17,7 +14,14 @@ class ChallengeService(
     private val challengeRepository: ChallengeRepository,
     private val teamRepository: TeamRepository,
     private val inBodyRecordRepository: InBodyRecordRepository,
-    private val userGoalRepository: UserGoalRepository
+    private val userGoalRepository: UserGoalRepository,
+    private val teamMissionRepository: TeamMissionRepository,
+    private val missionVerificationRepository: MissionVerificationRepository,
+    private val weeklySnapshotRepository: WeeklySnapshotRepository,
+    private val penaltyMissionRepository: PenaltyMissionRepository,
+    private val penaltyVerificationRepository: PenaltyVerificationRepository,
+    private val finalScoreRepository: FinalScoreRepository,
+    private val challengeParticipantRepository: ChallengeParticipantRepository
 ) {
 
     @Transactional
@@ -82,6 +86,37 @@ class ChallengeService(
     fun deleteChallenge(id: UUID) {
         val challenge = challengeRepository.findById(id)
             .orElseThrow { IllegalArgumentException("Challenge not found") }
+
+        // Delete in correct order due to FK constraints
+        val teams = teamRepository.findByChallengeId(id)
+        teams.forEach { team ->
+            val teamMissions = teamMissionRepository.findByTeamIdAndChallengeId(team.id!!, id)
+            teamMissions.forEach { mission ->
+                missionVerificationRepository.deleteByTeamMissionId(mission.id!!)
+            }
+            teamMissionRepository.deleteByTeamIdAndChallengeId(team.id!!, id)
+
+            val penalties = penaltyMissionRepository.findByChallengeIdAndTeamId(id, team.id!!)
+            penalties.forEach { penalty ->
+                penaltyVerificationRepository.deleteByPenaltyMissionId(penalty.id!!)
+            }
+            penaltyMissionRepository.deleteByChallengeIdAndTeamId(id, team.id!!)
+        }
+
+        weeklySnapshotRepository.deleteByChallengeId(id)
+        finalScoreRepository.deleteByChallengeId(id)
+
+        // Delete goals and inbody records
+        userGoalRepository.deleteByChallengeId(id)
+        inBodyRecordRepository.deleteByChallengeId(id)
+
+        // Delete participants
+        challengeParticipantRepository.deleteByChallengeId(id)
+
+        // Delete teams
+        teamRepository.deleteByChallengeId(id)
+
+        // Finally delete challenge
         challengeRepository.delete(challenge)
     }
 

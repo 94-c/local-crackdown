@@ -26,7 +26,7 @@ export default function TeamPage() {
   const [progressLoading, setProgressLoading] = useState(false);
   const [progressError, setProgressError] = useState("");
 
-  const weekNumber = 1;
+  const [weekNumber, setWeekNumber] = useState(1);
 
   const fetchMission = useCallback(
     async (teamId: string, challengeId: string) => {
@@ -34,11 +34,21 @@ export default function TeamPage() {
         const missions = await apiClient.get<TeamMission[]>(
           `/api/team-missions?teamId=${teamId}&challengeId=${challengeId}`
         );
-        const currentMission = missions.find(
-          (m) => m.weekNumber === weekNumber
-        );
-        if (currentMission) {
-          setMission(currentMission);
+        if (missions.length > 0) {
+          // Use the latest (highest) week number
+          const latestWeek = Math.max(...missions.map((m) => m.weekNumber));
+          setWeekNumber(latestWeek);
+          const currentMission = missions.find(
+            (m) => m.weekNumber === latestWeek
+          );
+          if (currentMission) {
+            setMission(currentMission);
+          } else {
+            setMission(null);
+            const templates =
+              await apiClient.get<MissionTemplate[]>("/api/mission-templates");
+            setMissionTemplates(templates);
+          }
         } else {
           setMission(null);
           const templates =

@@ -6,4 +6,5 @@ import java.util.UUID
 
 interface MissionVerificationRepository : JpaRepository<MissionVerification, UUID> {
     fun findByTeamMissionId(teamMissionId: UUID): List<MissionVerification>
+    fun deleteByTeamMissionId(teamMissionId: UUID)
 }

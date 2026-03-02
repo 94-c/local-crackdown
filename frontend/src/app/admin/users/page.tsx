@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { UserInfo } from "@/lib/types";
-import { LoadingSkeleton, ErrorAlert, EmptyState } from "@/components/ui";
+import { LoadingSkeleton, ErrorAlert, EmptyState, useToast } from "@/components/ui";
 
 export default function UsersPage() {
+  const toast = useToast();
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -30,6 +31,17 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  const handleDeleteUser = async (userId: string, nickname: string) => {
+    if (!confirm(`"${nickname}" 사용자를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) return;
+    try {
+      await apiClient.delete(`/api/admin/users/${userId}`);
+      toast.success("사용자가 삭제되었습니다.");
+      fetchUsers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "사용자 삭제에 실패했습니다");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -65,19 +77,33 @@ export default function UsersPage() {
                     {user.email}
                   </p>
                 </div>
-                <span
-                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-                    user.role === "ADMIN"
-                      ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
-                      : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  }`}
-                >
-                  {user.role}
-                </span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      user.role === "ADMIN"
+                        ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                        : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    }`}
+                  >
+                    {user.role}
+                  </span>
+                  {user.role !== "ADMIN" && (
+                    <button
+                      onClick={() => handleDeleteUser(user.id, user.nickname)}
+                      className="rounded-lg px-3 py-1.5 text-xs text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                    >
+                      삭제
+                    </button>
+                  )}
+                </div>
               </div>
-              <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
-                ID: {user.id}
-              </p>
+              {(user.gender || user.height) && (
+                <div className="mt-2 flex gap-3 text-xs text-gray-400 dark:text-gray-500">
+                  {user.gender && <span>{user.gender === "MALE" ? "남성" : "여성"}</span>}
+                  {user.height && <span>{user.height}cm</span>}
+                  {user.birthDate && <span>{user.birthDate}</span>}
+                </div>
+              )}
             </div>
           ))}
         </div>

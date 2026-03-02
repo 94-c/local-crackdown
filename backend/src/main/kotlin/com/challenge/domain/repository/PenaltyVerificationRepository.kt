@@ -6,4 +6,5 @@ import java.util.UUID
 
 interface PenaltyVerificationRepository : JpaRepository<PenaltyVerification, UUID> {
     fun findByPenaltyMissionId(penaltyMissionId: UUID): List<PenaltyVerification>
+    fun deleteByPenaltyMissionId(penaltyMissionId: UUID)
 }

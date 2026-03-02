@@ -7,4 +7,5 @@ import java.util.UUID
 interface TeamMissionRepository : JpaRepository<TeamMission, UUID> {
     fun findByTeamIdAndChallengeId(teamId: UUID, challengeId: UUID): List<TeamMission>
     fun findByTeamIdAndChallengeIdAndWeekNumber(teamId: UUID, challengeId: UUID, weekNumber: Int): TeamMission?
+    fun deleteByTeamIdAndChallengeId(teamId: UUID, challengeId: UUID)
 }

@@ -17,7 +17,12 @@ export default function VerifyPage() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
-  const weekNumber = 1;
+  // Image upload
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const [weekNumber, setWeekNumber] = useState(1);
 
   const fetchMission = useCallback(
     async (teamId: string, challengeId: string) => {
@@ -25,10 +30,16 @@ export default function VerifyPage() {
         const missions = await apiClient.get<TeamMission[]>(
           `/api/team-missions?teamId=${teamId}&challengeId=${challengeId}`
         );
-        const currentMission = missions.find(
-          (m) => m.weekNumber === weekNumber
-        );
-        setMission(currentMission || null);
+        if (missions.length > 0) {
+          const latestWeek = Math.max(...missions.map((m) => m.weekNumber));
+          setWeekNumber(latestWeek);
+          const currentMission = missions.find(
+            (m) => m.weekNumber === latestWeek
+          );
+          setMission(currentMission || null);
+        } else {
+          setMission(null);
+        }
       } catch {
         setMission(null);
       }
@@ -55,6 +66,14 @@ export default function VerifyPage() {
     init();
   }, [fetchMission]);
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
   const handleSubmitVerification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mission) return;
@@ -62,11 +81,40 @@ export default function VerifyPage() {
     setSubmitError("");
     setSubmitLoading(true);
     try {
+      let imageUrl: string | null = null;
+
+      if (imageFile) {
+        setUploadingImage(true);
+        try {
+          const presigned = await apiClient.post<{
+            uploadUrl: string;
+            fileUrl: string;
+            key: string;
+          }>("/api/storage/presigned-url", {
+            contentType: imageFile.type,
+            folder: "verifications",
+          });
+
+          await fetch(presigned.uploadUrl, {
+            method: "PUT",
+            body: imageFile,
+            headers: { "Content-Type": imageFile.type },
+          });
+
+          imageUrl = presigned.fileUrl;
+        } catch {
+          // Image upload failed, continue without image
+        } finally {
+          setUploadingImage(false);
+        }
+      }
+
       const newVerification = await apiClient.post<Verification>(
         "/api/verifications",
         {
           teamMissionId: mission.id,
           memo: memo || null,
+          imageUrl,
         }
       );
       // Optimistically add to local state
@@ -78,6 +126,8 @@ export default function VerifyPage() {
         };
       });
       setMemo("");
+      setImageFile(null);
+      setImagePreview(null);
       toast.success("인증이 등록되었습니다!");
     } catch (err) {
       setSubmitError(
@@ -198,20 +248,33 @@ export default function VerifyPage() {
                 />
               </div>
 
-              <button
-                type="button"
-                disabled
-                className="w-full rounded-lg border border-gray-300 px-6 py-3 text-sm font-medium text-gray-400 dark:border-gray-700 dark:text-gray-500"
-              >
-                이미지 업로드 (준비중)
-              </button>
+              <div>
+                <label className="block text-sm font-medium">이미지</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:rounded-lg file:border-0 file:bg-black file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800 dark:file:bg-white dark:file:text-black"
+                />
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    alt="미리보기"
+                    className="mt-2 h-32 w-32 rounded-lg object-cover"
+                  />
+                )}
+              </div>
 
               <button
                 type="submit"
-                disabled={submitLoading}
+                disabled={submitLoading || uploadingImage}
                 className="w-full rounded-lg bg-black px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
               >
-                {submitLoading ? "등록 중..." : "인증 등록"}
+                {uploadingImage
+                  ? "이미지 업로드 중..."
+                  : submitLoading
+                    ? "등록 중..."
+                    : "인증 등록"}
               </button>
             </form>
           </div>
@@ -259,6 +322,13 @@ export default function VerifyPage() {
                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                       {v.memo}
                     </p>
+                  )}
+                  {v.imageUrl && v.imageUrl !== "placeholder-image-url" && (
+                    <img
+                      src={v.imageUrl}
+                      alt="인증 이미지"
+                      className="mt-2 h-24 w-24 rounded-lg object-cover"
+                    />
                   )}
                 </div>
               ))

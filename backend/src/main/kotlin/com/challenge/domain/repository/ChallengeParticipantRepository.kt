@@ -10,4 +10,5 @@ interface ChallengeParticipantRepository : JpaRepository<ChallengeParticipant, U
     fun findByChallengeId(challengeId: UUID): List<ChallengeParticipant>
     fun existsByChallengeIdAndUserId(challengeId: UUID, userId: UUID): Boolean
     fun findByChallengeIdAndUserId(challengeId: UUID, userId: UUID): ChallengeParticipant?
+    fun deleteByChallengeId(challengeId: UUID)
 }

@@ -46,4 +46,8 @@ class S3StorageService(
 
         return presigner.presignPutObject(presignRequest).url().toString()
     }
+
+    fun getFileUrl(key: String): String {
+        return "$endpoint/$bucket/$key"
+    }
 }

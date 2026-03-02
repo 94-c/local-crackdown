@@ -69,6 +69,16 @@ class InBodyService(
             ?.let { toResponse(it) }
     }
 
+    @Transactional
+    fun deleteRecord(userId: String, recordId: String) {
+        val userUuid = UUID.fromString(userId)
+        val recordUuid = UUID.fromString(recordId)
+        val record = inBodyRecordRepository.findById(recordUuid)
+            .orElseThrow { IllegalArgumentException("Record not found") }
+        require(record.userId == userUuid) { "You can only delete your own records" }
+        inBodyRecordRepository.delete(record)
+    }
+
     private fun toResponse(record: InBodyRecord): InBodyRecordResponse {
         return InBodyRecordResponse(
             id = record.id.toString(),

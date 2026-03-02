@@ -31,7 +31,7 @@ class MissionVerificationService(
         val verification = MissionVerification(
             teamMission = teamMission,
             user = user,
-            imageUrl = "placeholder-image-url",
+            imageUrl = request.imageUrl,
             memo = request.memo,
             verified = false
         )
@@ -44,6 +44,15 @@ class MissionVerificationService(
         val missionUuid = UUID.fromString(missionId)
         return missionVerificationRepository.findByTeamMissionId(missionUuid)
             .map { toResponse(it) }
+    }
+
+    @Transactional
+    fun approveVerification(verificationId: String) {
+        val uuid = UUID.fromString(verificationId)
+        val verification = missionVerificationRepository.findById(uuid)
+            .orElseThrow { IllegalArgumentException("Verification not found") }
+        verification.verified = true
+        missionVerificationRepository.save(verification)
     }
 
     private fun toResponse(verification: MissionVerification): VerificationResponse {

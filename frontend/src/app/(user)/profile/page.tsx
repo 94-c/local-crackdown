@@ -80,6 +80,16 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteInbody = async (recordId: string) => {
+    if (!confirm("이 인바디 기록을 삭제하시겠습니까?")) return;
+    try {
+      await apiClient.delete(`/api/inbody/${recordId}`);
+      setInbodyRecords((prev) => prev.filter((r) => r.id !== recordId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "삭제에 실패했습니다.");
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString("ko-KR", {
@@ -193,8 +203,17 @@ export default function ProfilePage() {
                   key={record.id}
                   className="rounded-xl border border-gray-200 p-4 dark:border-gray-700"
                 >
-                  <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
-                    {formatDate(record.recordDate)}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {formatDate(record.recordDate)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteInbody(record.id)}
+                      className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                    >
+                      삭제
+                    </button>
                   </div>
                   <div className="grid grid-cols-4 gap-2 text-center">
                     <div>

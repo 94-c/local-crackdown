@@ -8,4 +8,5 @@ interface PenaltyMissionRepository : JpaRepository<PenaltyMission, UUID> {
     fun findByChallengeIdAndWeekNumber(challengeId: UUID, weekNumber: Int): List<PenaltyMission>
     fun findByChallengeIdAndTeamId(challengeId: UUID, teamId: UUID): List<PenaltyMission>
     fun findByTeamIdAndWeekNumber(teamId: UUID, weekNumber: Int): List<PenaltyMission>
+    fun deleteByChallengeIdAndTeamId(challengeId: UUID, teamId: UUID)
 }

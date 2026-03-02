@@ -3,10 +3,9 @@ package com.challenge.presentation.controller
 import com.challenge.application.dto.UserResponse
 import com.challenge.application.service.UserSearchService
 import com.challenge.domain.repository.UserRepository
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.*
+import java.util.UUID
 
 @RestController
 @RequestMapping("/api/admin/users")
@@ -34,5 +33,13 @@ class AdminUserController(
     @GetMapping("/search")
     fun searchUsers(@RequestParam q: String): List<UserResponse> {
         return userSearchService.searchUsers(q)
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun deleteUser(@PathVariable id: UUID) {
+        val user = userRepository.findById(id)
+            .orElseThrow { IllegalArgumentException("User not found") }
+        userRepository.delete(user)
     }
 }

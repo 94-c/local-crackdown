@@ -47,7 +47,9 @@ data class CreateVerificationRequest(
     @field:NotNull
     val teamMissionId: String,
 
-    val memo: String? = null
+    val memo: String? = null,
+
+    val imageUrl: String? = null
 )
 
 data class VerificationResponse(
