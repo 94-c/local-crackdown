@@ -154,3 +154,25 @@ export interface ChallengeInvite {
   endDate: string;
   status: string;
 }
+
+export interface Participant {
+  id: string;
+  userId: string;
+  nickname: string;
+  email: string;
+  status: string;
+  joinedAt: string;
+  hasTeam: boolean;
+  hasInbody: boolean;
+  hasGoals: boolean;
+}
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  link: string | null;
+  createdAt: string;
+}

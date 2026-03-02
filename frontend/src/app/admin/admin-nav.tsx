@@ -8,6 +8,7 @@ import { logout } from "@/lib/auth";
 const NAV_ITEMS = [
   { href: "/admin", label: "대시보드" },
   { href: "/admin/challenges", label: "챌린지" },
+  { href: "/admin/participants", label: "참여자" },
   { href: "/admin/users", label: "사용자" },
   { href: "/admin/teams", label: "팀 관리" },
   { href: "/admin/weekly-close", label: "주간마감" },

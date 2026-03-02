@@ -3,8 +3,10 @@ package com.challenge.application.service
 import com.challenge.application.dto.CreateTeamRequest
 import com.challenge.application.dto.TeamResponse
 import com.challenge.application.dto.UserResponse
+import com.challenge.domain.entity.ParticipantStatus
 import com.challenge.domain.entity.Team
 import com.challenge.domain.entity.User
+import com.challenge.domain.repository.ChallengeParticipantRepository
 import com.challenge.domain.repository.ChallengeRepository
 import com.challenge.domain.repository.TeamRepository
 import com.challenge.domain.repository.UserRepository
@@ -16,7 +18,8 @@ import java.util.UUID
 class TeamService(
     private val teamRepository: TeamRepository,
     private val challengeRepository: ChallengeRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val participantRepository: ChallengeParticipantRepository
 ) {
 
     @Transactional
@@ -50,6 +53,42 @@ class TeamService(
     @Transactional(readOnly = true)
     fun getMyTeams(userId: UUID): List<TeamResponse> {
         return teamRepository.findByMember1IdOrMember2Id(userId, userId).map { toResponse(it) }
+    }
+
+    @Transactional
+    fun autoAssignTeams(challengeId: UUID): List<TeamResponse> {
+        val challenge = challengeRepository.findById(challengeId)
+            .orElseThrow { IllegalArgumentException("Challenge not found") }
+
+        val existingTeams = teamRepository.findByChallengeId(challengeId)
+        val assignedUserIds = existingTeams.flatMap { team ->
+            listOfNotNull(team.member1.id, team.member2?.id)
+        }.toSet()
+
+        val approved = participantRepository.findByChallengeIdAndStatus(challengeId, ParticipantStatus.APPROVED)
+        val unassigned = approved
+            .filter { participant -> !assignedUserIds.contains(participant.userId) }
+            .mapNotNull { participant -> userRepository.findById(participant.userId).orElse(null) }
+            .shuffled()
+
+        if (unassigned.isEmpty()) return emptyList()
+
+        val newTeams = mutableListOf<TeamResponse>()
+        val baseNumber = existingTeams.size + 1
+        var teamIndex = 0
+
+        for (chunk in unassigned.chunked(2)) {
+            val team = Team(
+                name = "${challenge.title} ${baseNumber + teamIndex}팀",
+                challenge = challenge,
+                member1 = chunk[0],
+                member2 = if (chunk.size > 1) chunk[1] else null
+            )
+            newTeams.add(toResponse(teamRepository.save(team)))
+            teamIndex++
+        }
+
+        return newTeams
     }
 
     @Transactional

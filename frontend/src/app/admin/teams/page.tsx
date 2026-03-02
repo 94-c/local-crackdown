@@ -127,11 +127,11 @@ export default function TeamsPage() {
     setAutoAssignLoading(true);
     setError("");
     try {
-      const result = await apiClient.post<{ createdTeams: number }>(
+      const result = await apiClient.post<Team[]>(
         `/api/admin/teams/auto-assign?challengeId=${selectedChallengeId}`,
         {}
       );
-      toast.success(`자동 팀 구성 완료: ${result.createdTeams}개 팀이 생성되었습니다.`);
+      toast.success(`자동 팀 구성 완료: ${result.length}개 팀이 생성되었습니다.`);
       fetchTeams(selectedChallengeId);
     } catch (err) {
       setError(

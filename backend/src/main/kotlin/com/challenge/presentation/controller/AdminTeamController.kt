@@ -25,6 +25,11 @@ class AdminTeamController(
         return teamService.getTeamsByChallenge(challengeId)
     }
 
+    @PostMapping("/auto-assign")
+    fun autoAssignTeams(@RequestParam challengeId: UUID): List<TeamResponse> {
+        return teamService.autoAssignTeams(challengeId)
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteTeam(@PathVariable id: UUID) {

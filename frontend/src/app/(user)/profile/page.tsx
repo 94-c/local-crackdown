@@ -9,6 +9,7 @@ import type {
 } from "@/lib/types";
 import Link from "next/link";
 import InBodyModal from "@/components/InBodyModal";
+import InBodyChart from "@/components/InBodyChart";
 import { LoadingSkeleton, ErrorAlert, EmptyState, ProgressBar } from "@/components/ui";
 
 export default function ProfilePage() {
@@ -179,6 +180,7 @@ export default function ProfilePage() {
               </button>
             )}
           </div>
+          <InBodyChart records={inbodyRecords} />
           {inbodyRecords.length === 0 ? (
             <EmptyState
               title="인바디 기록이 없습니다"
