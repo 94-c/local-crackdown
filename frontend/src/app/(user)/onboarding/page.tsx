@@ -10,7 +10,23 @@ import type {
   UserProfile,
 } from "@/lib/types";
 import Image from "next/image";
-import { LoadingSkeleton, ErrorAlert } from "@/components/ui";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Badge,
+  Progress,
+  Button,
+  Input,
+  Label,
+  Skeleton,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
+import { Check, ChevronLeft, ChevronRight, PartyPopper } from "lucide-react";
+
+const TOTAL_STEPS = 4;
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
@@ -60,9 +76,7 @@ export default function OnboardingPage() {
           if (pendingId) {
             setChallengeId(pendingId);
           } else {
-            setError(
-              "참여 중인 챌린지가 없습니다. 관리자에게 문의하세요."
-            );
+            setError("참여 중인 챌린지가 없습니다. 관리자에게 문의하세요.");
           }
         }
         setGoalTypes(types);
@@ -95,9 +109,7 @@ export default function OnboardingPage() {
       });
       setStep(2);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "프로필 저장에 실패했습니다"
-      );
+      setError(err instanceof Error ? err.message : "프로필 저장에 실패했습니다");
     } finally {
       setLoading(false);
     }
@@ -117,9 +129,7 @@ export default function OnboardingPage() {
       });
       setStep(3);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "인바디 등록에 실패했습니다"
-      );
+      setError(err instanceof Error ? err.message : "인바디 등록에 실패했습니다");
     } finally {
       setLoading(false);
     }
@@ -169,9 +179,7 @@ export default function OnboardingPage() {
       }
       setStep(4);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "목표 설정에 실패했습니다"
-      );
+      setError(err instanceof Error ? err.message : "목표 설정에 실패했습니다");
     } finally {
       setLoading(false);
     }
@@ -184,8 +192,9 @@ export default function OnboardingPage() {
   if (initialLoading) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-6">
-        <div className="w-full max-w-md">
-          <LoadingSkeleton variant="form" count={1} />
+        <div className="w-full max-w-md space-y-4">
+          <Skeleton className="h-2 w-full rounded-full" />
+          <Skeleton className="h-64 w-full rounded-xl" />
         </div>
       </main>
     );
@@ -194,386 +203,359 @@ export default function OnboardingPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
       <div className="w-full max-w-md space-y-6">
-        {/* Progress Indicator — 4 steps */}
-        <div className="flex items-center justify-center gap-2">
-          {[1, 2, 3, 4].map((s) => (
-            <div
-              key={s}
-              className={`h-2 w-12 rounded-full transition-colors ${
-                s <= step
-                  ? "bg-black dark:bg-white"
-                  : "bg-gray-200 dark:bg-gray-700"
-              }`}
-            />
-          ))}
+        {/* Progress Indicator */}
+        <div className="space-y-2">
+          <Progress value={(step / TOTAL_STEPS) * 100} className="h-1.5" />
+          <div className="flex justify-between">
+            {[1, 2, 3, 4].map((s) => (
+              <span
+                key={s}
+                className={cn(
+                  "text-xs font-medium transition-colors",
+                  s <= step ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                {s === 1 ? "기본정보" : s === 2 ? "인바디" : s === 3 ? "목표" : "완료"}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Step 1: Basic Profile */}
         {step === 1 && (
-          <div className="space-y-6">
-            <div className="text-center">
+          <Card>
+            <CardHeader className="text-center">
               <Image
                 src="/images/mascot.png"
                 alt="지방단속"
                 width={100}
                 height={100}
                 priority
-                className="mx-auto"
+                className="mx-auto mb-2"
               />
-              <h1 className="mt-4 text-2xl font-bold">기초 정보 입력</h1>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              <CardTitle className="text-2xl">기초 정보 입력</CardTitle>
+              <CardDescription>
                 정확한 분석을 위해 기본 정보를 입력해주세요
-              </p>
-            </div>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {error && (
+                <div className="rounded-lg border border-destructive/50 bg-destructive/5 px-3 py-2">
+                  <p className="text-sm text-destructive">{error}</p>
+                </div>
+              )}
 
-            {error && (
-              <ErrorAlert message={error} />
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium">성별</label>
-                <div className="mt-2 flex gap-3">
-                  <button
+              <div className="space-y-2">
+                <Label>성별</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
                     type="button"
+                    variant={gender === "MALE" ? "default" : "outline"}
                     onClick={() => setGender("MALE")}
-                    className={`flex-1 rounded-lg border px-4 py-3 text-sm font-medium transition ${
-                      gender === "MALE"
-                        ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black"
-                        : "border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
-                    }`}
+                    className="w-full"
                   >
                     남성
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant={gender === "FEMALE" ? "default" : "outline"}
                     onClick={() => setGender("FEMALE")}
-                    className={`flex-1 rounded-lg border px-4 py-3 text-sm font-medium transition ${
-                      gender === "FEMALE"
-                        ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black"
-                        : "border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
-                    }`}
+                    className="w-full"
                   >
                     여성
-                  </button>
+                  </Button>
                 </div>
               </div>
 
-              <div>
-                <label
-                  htmlFor="birthDate"
-                  className="block text-sm font-medium"
-                >
-                  생년월일
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="birthDate">생년월일</Label>
+                <Input
                   id="birthDate"
                   type="date"
                   required
                   value={birthDate}
                   onChange={(e) => setBirthDate(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
                 />
               </div>
 
-              <div>
-                <label htmlFor="height" className="block text-sm font-medium">
-                  키 (cm)
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="height">키 (cm)</Label>
+                <Input
                   id="height"
                   type="number"
                   step="0.1"
                   required
                   value={height}
                   onChange={(e) => setHeight(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
                   placeholder="예: 175.5"
                 />
               </div>
-            </div>
 
-            <button
-              type="button"
-              onClick={handleProfileSubmit}
-              disabled={loading || !gender || !birthDate || !height}
-              className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-            >
-              {loading ? "저장 중..." : "다음"}
-            </button>
-          </div>
+              <Button
+                type="button"
+                onClick={handleProfileSubmit}
+                disabled={loading || !gender || !birthDate || !height}
+                className="w-full"
+              >
+                {loading ? "저장 중..." : "다음"}
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         {/* Step 2: InBody */}
         {step === 2 && (
-          <div className="space-y-6">
-            <div className="text-center">
+          <Card>
+            <CardHeader className="text-center">
               <Image
                 src="/images/mascot.png"
                 alt="지방단속"
                 width={100}
                 height={100}
                 priority
-                className="mx-auto"
+                className="mx-auto mb-2"
               />
-              <h1 className="mt-4 text-2xl font-bold">시작 인바디 입력</h1>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              <CardTitle className="text-2xl">시작 인바디 입력</CardTitle>
+              <CardDescription>
                 챌린지 시작 전 현재 체성분을 기록해주세요
-              </p>
-            </div>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {error && (
+                <div className="rounded-lg border border-destructive/50 bg-destructive/5 px-3 py-2">
+                  <p className="text-sm text-destructive">{error}</p>
+                </div>
+              )}
 
-            {error && (
-              <ErrorAlert message={error} />
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="recordDate"
-                  className="block text-sm font-medium"
-                >
-                  측정일
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="recordDate">측정일</Label>
+                <Input
                   id="recordDate"
                   type="date"
                   value={recordDate}
                   onChange={(e) => setRecordDate(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
                 />
               </div>
 
-              <div>
-                <label htmlFor="weight" className="block text-sm font-medium">
-                  체중 (kg)
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="weight">체중 (kg)</Label>
+                <Input
                   id="weight"
                   type="number"
                   step="0.1"
                   required
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
                   placeholder="예: 70.5"
                 />
               </div>
 
-              <div>
-                <label
-                  htmlFor="muscleMass"
-                  className="block text-sm font-medium"
-                >
-                  골격근량 (kg)
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="muscleMass">골격근량 (kg)</Label>
+                <Input
                   id="muscleMass"
                   type="number"
                   step="0.1"
                   required
                   value={muscleMass}
                   onChange={(e) => setMuscleMass(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
                   placeholder="예: 28.3"
                 />
               </div>
 
-              <div>
-                <label htmlFor="fatMass" className="block text-sm font-medium">
-                  체지방량 (kg)
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="fatMass">체지방량 (kg)</Label>
+                <Input
                   id="fatMass"
                   type="number"
                   step="0.1"
                   required
                   value={fatMass}
                   onChange={(e) => setFatMass(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
                   placeholder="예: 15.2"
                 />
                 {fatPercentage && (
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    체지방률: {fatPercentage}%
+                  <p className="text-sm text-muted-foreground">
+                    체지방률:{" "}
+                    <span className="font-medium text-primary">{fatPercentage}%</span>
                   </p>
                 )}
               </div>
-            </div>
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setError("");
-                  setStep(1);
-                }}
-                className="flex-1 rounded-lg border border-gray-300 px-6 py-3 transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
-              >
-                이전
-              </button>
-              <button
-                type="button"
-                onClick={handleInBodySubmit}
-                disabled={
-                  loading ||
-                  !weight ||
-                  !muscleMass ||
-                  !fatMass ||
-                  !challengeId
-                }
-                className="flex-1 rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-              >
-                {loading ? "저장 중..." : "다음"}
-              </button>
-            </div>
-          </div>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setError("");
+                    setStep(1);
+                  }}
+                  className="flex-1"
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  이전
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleInBodySubmit}
+                  disabled={loading || !weight || !muscleMass || !fatMass || !challengeId}
+                  className="flex-1"
+                >
+                  {loading ? "저장 중..." : "다음"}
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Step 3: Goals */}
         {step === 3 && (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h1 className="text-2xl font-bold">목표 설정</h1>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                달성할 목표를 선택하고 수치를 입력하세요 (최대 2개)
-              </p>
-            </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">목표 설정</CardTitle>
+              <CardDescription>
+                달성할 목표를 선택하고 수치를 입력하세요{" "}
+                <Badge variant="outline" className="text-xs">최대 2개</Badge>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {error && (
+                <div className="rounded-lg border border-destructive/50 bg-destructive/5 px-3 py-2">
+                  <p className="text-sm text-destructive">{error}</p>
+                </div>
+              )}
 
-            {error && (
-              <ErrorAlert message={error} />
-            )}
-
-            <div className="space-y-3">
-              {goalTypes.map((gt) => {
-                const selected = selectedGoals.find(
-                  (g) => g.goalTypeId === gt.id
-                );
-                return (
-                  <div
-                    key={gt.id}
-                    className={`rounded-xl border p-4 transition ${
-                      selected
-                        ? "border-black bg-gray-50 dark:border-white dark:bg-gray-800"
-                        : "border-gray-200 dark:border-gray-700"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => toggleGoalType(gt.id)}
-                      className="flex w-full items-center justify-between text-left"
+              <div className="space-y-3">
+                {goalTypes.map((gt) => {
+                  const selected = selectedGoals.find(
+                    (g) => g.goalTypeId === gt.id
+                  );
+                  const isDisabled = !selected && selectedGoals.length >= 2;
+                  return (
+                    <div
+                      key={gt.id}
+                      className={cn(
+                        "rounded-xl border p-4 transition-colors",
+                        selected
+                          ? "border-primary bg-primary/5"
+                          : isDisabled
+                            ? "border-border opacity-50"
+                            : "border-border hover:border-primary/50"
+                      )}
                     >
-                      <div>
-                        <span className="font-semibold">{gt.name}</span>
-                        <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
-                          ({gt.unit})
-                        </span>
-                        {gt.description && (
-                          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                            {gt.description}
-                          </p>
-                        )}
-                      </div>
-                      <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition ${
-                          selected
-                            ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black"
-                            : "border-gray-300 dark:border-gray-600"
-                        }`}
+                      <button
+                        type="button"
+                        onClick={() => !isDisabled && toggleGoalType(gt.id)}
+                        className="flex w-full items-center justify-between text-left"
+                        disabled={isDisabled}
                       >
-                        {selected && (
-                          <svg
-                            className="h-3 w-3"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={3}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        )}
-                      </div>
-                    </button>
-
-                    {selected && (
-                      <div className="mt-3">
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
-                          목표 수치 ({gt.unit})
-                          {gt.directionIsDecrease && (
-                            <span className="ml-1 text-blue-600 dark:text-blue-400">
-                              (감소 목표)
-                            </span>
+                        <div>
+                          <span className="font-semibold">{gt.name}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({gt.unit})
+                          </span>
+                          {gt.description && (
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {gt.description}
+                            </p>
                           )}
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={selected.targetValue}
-                          onChange={(e) =>
-                            updateTargetValue(gt.id, e.target.value)
-                          }
-                          className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-black focus:outline-none dark:border-gray-600 dark:bg-gray-900 dark:focus:border-white"
-                          placeholder={`목표 ${gt.unit}`}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                        </div>
+                        <div
+                          className={cn(
+                            "flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors",
+                            selected
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-muted-foreground"
+                          )}
+                        >
+                          {selected && <Check className="h-3 w-3" />}
+                        </div>
+                      </button>
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setError("");
-                  setStep(2);
-                }}
-                className="flex-1 rounded-lg border border-gray-300 px-6 py-3 transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
-              >
-                이전
-              </button>
-              <button
-                type="button"
-                onClick={handleGoalsSubmit}
-                disabled={loading || selectedGoals.length === 0}
-                className="flex-1 rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-              >
-                {loading ? "저장 중..." : "완료"}
-              </button>
-            </div>
-          </div>
+                      {selected && (
+                        <div className="mt-3 space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">
+                            목표 수치 ({gt.unit})
+                            {gt.directionIsDecrease && (
+                              <span className="ml-1 text-blue-600 dark:text-blue-400">
+                                (감소 목표)
+                              </span>
+                            )}
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={selected.targetValue}
+                            onChange={(e) =>
+                              updateTargetValue(gt.id, e.target.value)
+                            }
+                            placeholder={`목표 ${gt.unit}`}
+                            className="h-9 text-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setError("");
+                    setStep(2);
+                  }}
+                  className="flex-1"
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  이전
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleGoalsSubmit}
+                  disabled={loading || selectedGoals.length === 0}
+                  className="flex-1"
+                >
+                  {loading ? "저장 중..." : "완료"}
+                  <Check className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Step 4: Complete */}
         {step === 4 && (
-          <div className="space-y-6 text-center">
-            <Image
-              src="/images/mascot.png"
-              alt="지방단속"
-              width={160}
-              height={160}
-              className="mx-auto"
-            />
-            <div>
+          <Card>
+            <CardContent className="flex flex-col items-center py-10 text-center">
+              <Image
+                src="/images/mascot.png"
+                alt="지방단속"
+                width={160}
+                height={160}
+                className="mx-auto mb-4"
+              />
+              <PartyPopper className="mb-3 h-10 w-10 text-primary" />
               <h1 className="text-2xl font-bold">설정 완료!</h1>
-              <p className="mt-2 text-gray-600 dark:text-gray-400">
+              <p className="mt-2 text-muted-foreground">
                 인바디 기록과 목표가 등록되었습니다.
                 <br />
                 이제 챌린지를 시작할 준비가 되었어요!
               </p>
-            </div>
-            <button
-              type="button"
-              onClick={goToProfile}
-              className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-            >
-              내 프로필 보기
-            </button>
-          </div>
+              <Button
+                type="button"
+                onClick={goToProfile}
+                className="mt-6 w-full"
+              >
+                내 프로필 보기
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
         )}
       </div>
     </main>

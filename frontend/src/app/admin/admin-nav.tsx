@@ -1,19 +1,34 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import {
+  LayoutDashboard,
+  Trophy,
+  Users,
+  UserCog,
+  UsersRound,
+  CalendarCheck,
+  BarChart3,
+  Sword,
+  Monitor,
+  LogOut,
+} from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/admin", label: "대시보드" },
-  { href: "/admin/challenges", label: "챌린지" },
-  { href: "/admin/participants", label: "참여자" },
-  { href: "/admin/users", label: "사용자" },
-  { href: "/admin/teams", label: "팀 관리" },
-  { href: "/admin/weekly-close", label: "주간마감" },
-  { href: "/admin/rankings", label: "순위" },
-  { href: "/admin/missions", label: "미션" },
+  { href: "/admin", label: "대시보드", icon: LayoutDashboard },
+  { href: "/admin/challenges", label: "챌린지", icon: Trophy },
+  { href: "/admin/participants", label: "참여자", icon: Users },
+  { href: "/admin/users", label: "사용자", icon: UserCog },
+  { href: "/admin/teams", label: "팀관리", icon: UsersRound },
+  { href: "/admin/weekly-close", label: "주간마감", icon: CalendarCheck },
+  { href: "/admin/rankings", label: "순위", icon: BarChart3 },
+  { href: "/admin/missions", label: "미션", icon: Sword },
 ];
 
 export function AdminNav() {
@@ -25,49 +40,59 @@ export function AdminNav() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6">
-        <div className="flex h-14 items-center gap-2">
-          <Link href="/admin" className="mr-4 shrink-0">
-            <Image
-              src="/images/logo.png"
-              alt="지방단속"
-              width={100}
-              height={36}
-              className="h-8 w-auto object-contain"
-            />
+    <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-sm">
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="flex h-14 items-center gap-4">
+          {/* Logo */}
+          <Link href="/admin" className="flex shrink-0 items-center gap-2">
+            <span className="text-lg font-bold tracking-tight">지방단속</span>
+            <Badge variant="outline" className="text-xs">Admin</Badge>
           </Link>
-          <div className="flex flex-1 gap-1 overflow-x-auto scrollbar-hide">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                  isActive(item.href)
-                    ? "bg-black text-white dark:bg-white dark:text-black"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-black dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-                }`}
-              >
-                {item.label}
+
+          <Separator orientation="vertical" className="h-6" />
+
+          {/* Nav links */}
+          <nav className="flex flex-1 items-center gap-0.5 overflow-x-auto scrollbar-hide">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    isActive(item.href)
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Right actions */}
+          <div className="flex shrink-0 items-center gap-1">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/home">
+                <Monitor className="h-4 w-4" />
+                <span className="ml-1.5 hidden sm:inline">사용자 화면</span>
               </Link>
-            ))}
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <Link
-              href="/home"
-              className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-black dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-            >
-              사용자 화면
-            </Link>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={logout}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
             >
-              로그아웃
-            </button>
+              <LogOut className="h-4 w-4" />
+              <span className="ml-1.5 hidden sm:inline">로그아웃</span>
+            </Button>
           </div>
         </div>
       </div>
-    </nav>
+    </header>
   );
 }

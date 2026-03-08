@@ -3,14 +3,48 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import { logout } from "@/lib/auth";
-import type { Team, Achievement, UserWeeklyResult, UserProfile, InBodyRecord } from "@/lib/types";
+import type {
+  Team,
+  Achievement,
+  UserWeeklyResult,
+  UserProfile,
+  InBodyRecord,
+} from "@/lib/types";
 import Image from "next/image";
 import Link from "next/link";
-import { LoadingSkeleton, ErrorAlert, EmptyState, ProgressBar } from "@/components/ui";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Badge,
+  Progress,
+  Button,
+  Skeleton,
+} from "@/components/ui";
 import OnboardingModal from "@/components/OnboardingModal";
+import {
+  Bell,
+  LogOut,
+  Users,
+  Clock,
+  TrendingUp,
+  Trophy,
+  ChevronRight,
+  Activity,
+  Target,
+  ClipboardList,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
 
 function useCountdown() {
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
 
   useEffect(() => {
     const getNextSundayEnd = () => {
@@ -21,7 +55,7 @@ function useCountdown() {
       const kstNow = new Date(utcNow + kstOffset);
 
       const dayOfWeek = kstNow.getDay(); // 0=Sunday
-      let daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+      const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
 
       // Target: next Sunday 23:59:59 KST
       const target = new Date(kstNow);
@@ -35,7 +69,9 @@ function useCountdown() {
 
       // Convert target back to local time for diff calculation
       const targetUtc = target.getTime() - kstOffset;
-      const targetLocal = new Date(targetUtc - now.getTimezoneOffset() * 60 * 1000);
+      const targetLocal = new Date(
+        targetUtc - now.getTimezoneOffset() * 60 * 1000
+      );
 
       const diff = targetLocal.getTime() - now.getTime();
       return Math.max(0, diff);
@@ -72,7 +108,9 @@ export default function HomePage() {
   );
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  const [onboardingChallengeId, setOnboardingChallengeId] = useState<string | null>(null);
+  const [onboardingChallengeId, setOnboardingChallengeId] = useState<
+    string | null
+  >(null);
 
   const countdown = useCountdown();
 
@@ -81,10 +119,13 @@ export default function HomePage() {
       const [profile, inbodyRecords, goalsAchievement] = await Promise.all([
         apiClient.get<UserProfile>("/api/users/profile"),
         apiClient.get<InBodyRecord[]>(`/api/inbody?challengeId=${cId}`),
-        apiClient.get<Achievement[]>(`/api/goals/achievement?challengeId=${cId}`),
+        apiClient.get<Achievement[]>(
+          `/api/goals/achievement?challengeId=${cId}`
+        ),
       ]);
 
-      const profileIncomplete = !profile.gender || !profile.birthDate || !profile.height;
+      const profileIncomplete =
+        !profile.gender || !profile.birthDate || !profile.height;
       const noInbody = inbodyRecords.length === 0;
       const noGoals = goalsAchievement.length === 0;
 
@@ -159,263 +200,357 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <LoadingSkeleton variant="card" count={3} />
+      <div className="space-y-4 p-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+          <Skeleton className="h-9 w-9 rounded-full" />
+        </div>
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-28 w-full rounded-xl" />
+        <Skeleton className="h-24 w-full rounded-xl" />
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-20 rounded-xl" />
+          <Skeleton className="h-20 rounded-xl" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold">
-            {nickname ? `${nickname}님` : "안녕하세요"}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            오늘도 화이팅!
-          </p>
-        </div>
-        <button
-          onClick={logout}
-          className="rounded-lg px-3 py-2 text-sm text-gray-500 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-        >
-          로그아웃
-        </button>
-      </div>
-
-      {error && (
-        <ErrorAlert message={error} onRetry={fetchData} />
-      )}
-
-      {!team ? (
-        <div className="space-y-4">
-          {pendingChallengeId ? (
-            <div className="rounded-xl border border-gray-200 bg-white p-6 text-center dark:border-gray-800 dark:bg-gray-900">
-              <Image
-                src="/images/mascot.png"
-                alt="지방단속"
-                width={100}
-                height={100}
-                className="mx-auto"
-              />
-              <p className="mt-4 text-sm font-medium text-gray-700 dark:text-gray-300">
-                참여 신청 완료
-              </p>
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                관리자 승인 후 팀이 배정됩니다. 먼저 온보딩을 진행해주세요.
-              </p>
-              {needsOnboarding ? (
-                <button
-                  type="button"
-                  onClick={() => setShowOnboarding(true)}
-                  className="mt-4 inline-block rounded-lg bg-black px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-                >
-                  온보딩 시작
-                </button>
-              ) : (
-                <p className="mt-4 text-sm font-medium text-green-600 dark:text-green-400">
-                  온보딩 완료! 팀 배정을 기다려주세요.
-                </p>
-              )}
-            </div>
-          ) : (
-            !error && (
-              <div className="rounded-xl border border-dashed border-gray-300 p-8 dark:border-gray-700">
-                <EmptyState
-                  title="아직 배정된 팀이 없습니다"
-                  description="관리자가 팀을 배정하면 챌린지가 시작됩니다."
-                  action={{
-                    label: "온보딩 시작하기",
-                    onClick: () => {
-                      window.location.href = "/onboarding";
-                    },
-                  }}
-                />
-              </div>
-            )
-          )}
-        </div>
-      ) : (
-        <>
-          {/* 팀 정보 카드 */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-            <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              내 팀
-            </h2>
-            <p className="mt-1 text-lg font-bold">{team.name}</p>
-            <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              <p>{team.member1.nickname}</p>
-              {team.member2 && <p>{team.member2.nickname}</p>}
-            </div>
+    <div className="min-h-screen bg-background">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold text-foreground">지방단속</h1>
+            <p className="text-xs text-muted-foreground">
+              {nickname ? `${nickname}님` : "안녕하세요"}
+            </p>
           </div>
-
-          {/* 주간 마감 카운트다운 */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-            <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              주간 마감까지
-            </h2>
-            <div className="mt-3 grid grid-cols-4 gap-2 text-center">
-              <div className="rounded-lg bg-gray-50 px-2 py-3 dark:bg-gray-800">
-                <p className="text-2xl font-bold tabular-nums">
-                  {countdown.days}
-                </p>
-                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                  일
-                </p>
-              </div>
-              <div className="rounded-lg bg-gray-50 px-2 py-3 dark:bg-gray-800">
-                <p className="text-2xl font-bold tabular-nums">
-                  {String(countdown.hours).padStart(2, "0")}
-                </p>
-                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                  시간
-                </p>
-              </div>
-              <div className="rounded-lg bg-gray-50 px-2 py-3 dark:bg-gray-800">
-                <p className="text-2xl font-bold tabular-nums">
-                  {String(countdown.minutes).padStart(2, "0")}
-                </p>
-                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                  분
-                </p>
-              </div>
-              <div className="rounded-lg bg-gray-50 px-2 py-3 dark:bg-gray-800">
-                <p className="text-2xl font-bold tabular-nums">
-                  {String(countdown.seconds).padStart(2, "0")}
-                </p>
-                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                  초
-                </p>
-              </div>
-            </div>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/notifications" className="relative">
+                <Bell className="h-5 w-5" />
+              </Link>
+            </Button>
+            <Button variant="ghost" size="icon" onClick={logout}>
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
+        </div>
+      </header>
 
-          {/* 최신 주간 결과 */}
-          {latestResult && (
-            <Link href="/result" className="block">
-              <div className="rounded-xl border border-gray-200 bg-white p-5 transition hover:border-gray-300 hover:shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {latestResult.weekNumber}주차 결과
-                  </h2>
-                  {latestResult.isBottomTeam && (
-                    <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                      하위팀
-                    </span>
+      <div className="space-y-4 p-4 pb-24">
+        {/* Error State */}
+        {error && (
+          <Card className="border-destructive/50 bg-destructive/5">
+            <CardContent className="flex items-center gap-3 p-4">
+              <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
+              <p className="flex-1 text-sm text-destructive">{error}</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={fetchData}
+                className="shrink-0 text-destructive hover:text-destructive"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {!team ? (
+          /* No Team State */
+          <div className="space-y-4">
+            {pendingChallengeId ? (
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="flex flex-col items-center p-8 text-center">
+                  <Image
+                    src="/images/mascot.png"
+                    alt="지방단속"
+                    width={100}
+                    height={100}
+                    className="mx-auto"
+                  />
+                  <Badge variant="secondary" className="mt-4">
+                    참여 신청 완료
+                  </Badge>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    관리자 승인 후 팀이 배정됩니다. 먼저 온보딩을 진행해주세요.
+                  </p>
+                  {needsOnboarding ? (
+                    <Button
+                      className="mt-4"
+                      onClick={() => setShowOnboarding(true)}
+                    >
+                      온보딩 시작
+                    </Button>
+                  ) : (
+                    <p className="mt-4 text-sm font-medium text-green-600 dark:text-green-400">
+                      온보딩 완료! 팀 배정을 기다려주세요.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              !error && (
+                <Card className="border-dashed">
+                  <CardContent className="flex flex-col items-center p-8 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                      <Users className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <h3 className="mt-3 font-semibold text-foreground">
+                      아직 배정된 팀이 없습니다
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      관리자가 팀을 배정하면 챌린지가 시작됩니다.
+                    </p>
+                    <Button
+                      className="mt-4"
+                      variant="outline"
+                      onClick={() => {
+                        window.location.href = "/onboarding";
+                      }}
+                    >
+                      온보딩 시작하기
+                    </Button>
+                  </CardContent>
+                </Card>
+              )
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Team Info Card */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    내 팀
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-xl font-bold text-foreground">{team.name}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Badge variant="secondary">{team.member1.nickname}</Badge>
+                  {team.member2 && (
+                    <Badge variant="secondary">{team.member2.nickname}</Badge>
                   )}
                 </div>
-                <div className="mt-3 grid grid-cols-3 gap-3">
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      내 달성률
+              </CardContent>
+            </Card>
+
+            {/* Weekly Countdown Card */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-sm font-medium text-primary">
+                    주간 마감까지
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div className="rounded-lg bg-background/70 px-2 py-3">
+                    <p className="text-2xl font-bold tabular-nums text-foreground">
+                      {countdown.days}
                     </p>
-                    <p className="mt-0.5 text-lg font-bold">
-                      {Number(latestResult.achievementRate).toFixed(1)}%
-                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">일</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      팀 점수
+                  <div className="rounded-lg bg-background/70 px-2 py-3">
+                    <p className="text-2xl font-bold tabular-nums text-foreground">
+                      {String(countdown.hours).padStart(2, "0")}
                     </p>
-                    <p className="mt-0.5 text-lg font-bold">
-                      {Number(latestResult.teamScore).toFixed(1)}
-                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">시간</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      팀 순위
+                  <div className="rounded-lg bg-background/70 px-2 py-3">
+                    <p className="text-2xl font-bold tabular-nums text-foreground">
+                      {String(countdown.minutes).padStart(2, "0")}
                     </p>
-                    <p className="mt-0.5 text-lg font-bold">
-                      {latestResult.teamRank}위
+                    <p className="mt-0.5 text-xs text-muted-foreground">분</p>
+                  </div>
+                  <div className="rounded-lg bg-background/70 px-2 py-3">
+                    <p className="text-2xl font-bold tabular-nums text-foreground">
+                      {String(countdown.seconds).padStart(2, "0")}
                     </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">초</p>
                   </div>
                 </div>
-                <p className="mt-3 text-center text-xs text-gray-400 dark:text-gray-500">
-                  전체 결과 보기 →
-                </p>
+              </CardContent>
+            </Card>
+
+            {/* Latest Weekly Result */}
+            {latestResult && (
+              <Link href="/result" className="block">
+                <Card className="transition-shadow hover:shadow-md">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                          {latestResult.weekNumber}주차 결과
+                        </CardTitle>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {latestResult.isBottomTeam && (
+                          <Badge variant="destructive">하위팀</Badge>
+                        )}
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="rounded-lg bg-muted/50 p-3 text-center">
+                        <p className="text-xs text-muted-foreground">
+                          내 달성률
+                        </p>
+                        <p className="mt-1 text-lg font-bold text-foreground">
+                          {Number(latestResult.achievementRate).toFixed(1)}%
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-muted/50 p-3 text-center">
+                        <p className="text-xs text-muted-foreground">팀 점수</p>
+                        <p className="mt-1 text-lg font-bold text-foreground">
+                          {Number(latestResult.teamScore).toFixed(1)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-muted/50 p-3 text-center">
+                        <p className="text-xs text-muted-foreground">팀 순위</p>
+                        <p className="mt-1 text-lg font-bold text-foreground">
+                          {latestResult.teamRank}위
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            )}
+
+            {/* Achievement Summary */}
+            {achievements.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 px-1">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  <h2 className="text-sm font-semibold text-foreground">
+                    내 달성률
+                  </h2>
+                </div>
+                {achievements.map((a) => (
+                  <Card key={a.goalTypeName}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Activity className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium text-foreground">
+                            {a.goalTypeName}
+                          </span>
+                        </div>
+                        <span className="text-sm font-bold text-primary">
+                          {a.achievementRate.toFixed(1)}%
+                        </span>
+                      </div>
+                      <Progress
+                        value={Math.min(100, a.achievementRate)}
+                        className="mt-3 h-2"
+                      />
+                      <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+                        <span>
+                          시작 {a.startValue}
+                          {a.unit}
+                        </span>
+                        <span>
+                          현재 {a.currentValue}
+                          {a.unit}
+                        </span>
+                        <span>
+                          목표 {a.targetValue}
+                          {a.unit}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-            </Link>
-          )}
-
-          {/* 달성률 요약 */}
-          {achievements.length > 0 ? (
-            <div className="space-y-3">
-              <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                내 달성률
-              </h2>
-              {achievements.map((a) => (
-                <div
-                  key={a.goalTypeName}
-                  className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      {a.goalTypeName}
-                    </span>
-                    <span className="text-sm font-bold">
-                      {a.achievementRate.toFixed(1)}%
-                    </span>
+            ) : (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center p-8 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                    <Target className="h-6 w-6 text-muted-foreground" />
                   </div>
-                  <ProgressBar
-                    value={a.achievementRate}
-                    showLabel={false}
-                    className="mt-2"
-                  />
-                  <div className="mt-1 flex justify-between text-xs text-gray-400">
-                    <span>
-                      시작 {a.startValue}
-                      {a.unit}
-                    </span>
-                    <span>
-                      현재 {a.currentValue}
-                      {a.unit}
-                    </span>
-                    <span>
-                      목표 {a.targetValue}
-                      {a.unit}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-gray-300 p-6 dark:border-gray-700">
-              <EmptyState
-                title="아직 목표가 설정되지 않았습니다"
-                action={{
-                  label: "온보딩 시작",
-                  onClick: () => {
-                    if (needsOnboarding && onboardingChallengeId) {
-                      setShowOnboarding(true);
-                    } else {
-                      window.location.href = "/onboarding";
-                    }
-                  },
-                }}
-              />
-            </div>
-          )}
+                  <h3 className="mt-3 font-semibold text-foreground">
+                    아직 목표가 설정되지 않았습니다
+                  </h3>
+                  <Button
+                    className="mt-4"
+                    onClick={() => {
+                      if (needsOnboarding && onboardingChallengeId) {
+                        setShowOnboarding(true);
+                      } else {
+                        window.location.href = "/onboarding";
+                      }
+                    }}
+                  >
+                    온보딩 시작
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
-          {/* 빠른 메뉴 */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Link
-              href="/profile"
-              className="rounded-xl border border-gray-200 bg-white p-4 text-center transition hover:border-gray-300 hover:shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700"
-            >
-              <p className="text-2xl">📊</p>
-              <p className="mt-1 text-sm font-medium">인바디 기록</p>
-            </Link>
-            <Link
-              href="/team"
-              className="rounded-xl border border-gray-200 bg-white p-4 text-center transition hover:border-gray-300 hover:shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700"
-            >
-              <p className="text-2xl">👥</p>
-              <p className="mt-1 text-sm font-medium">팀 미션</p>
-            </Link>
-          </div>
-        </>
-      )}
+            {/* Quick Links */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 px-1">
+                <ClipboardList className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-semibold text-foreground">
+                  바로가기
+                </h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Link href="/profile">
+                  <Card className="transition-shadow hover:shadow-md">
+                    <CardContent className="flex items-center gap-3 p-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Activity className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground">
+                          인바디 기록
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          체성분 확인
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+                <Link href="/team">
+                  <Card className="transition-shadow hover:shadow-md">
+                    <CardContent className="flex items-center gap-3 p-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Users className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground">
+                          팀 미션
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          미션 현황
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Onboarding Modal */}
       {onboardingChallengeId && (

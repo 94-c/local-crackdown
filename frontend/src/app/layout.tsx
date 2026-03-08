@@ -1,7 +1,11 @@
 import type { Metadata, Viewport } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
-import { ToastProvider } from "@/components/ui/ToastProvider";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
+
+const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const metadata: Metadata = {
   title: "지방단속 | Fat Patrol",
@@ -22,7 +26,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#000000",
+  themeColor: "#10b981",
 };
 
 export default function RootLayout({
@@ -32,12 +36,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className="min-h-screen antialiased">
-          <ToastProvider>
-            <ServiceWorkerRegister />
-            {children}
-          </ToastProvider>
-        </body>
+      <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
+        <ServiceWorkerRegister />
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

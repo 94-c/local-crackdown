@@ -1,13 +1,28 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import type { Challenge, Team } from "@/lib/types";
 import UserSearchDropdown from "@/components/UserSearchDropdown";
-import { LoadingSkeleton, ErrorAlert, EmptyState, useToast } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { ErrorAlert } from "@/components/ui/legacy/ErrorAlert";
+import { EmptyState } from "@/components/ui/legacy/EmptyState";
+import { Plus, X, Wand2, Trash2, Users } from "lucide-react";
 
 export default function TeamsPage() {
-  const toast = useToast();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [selectedChallengeId, setSelectedChallengeId] = useState("");
   const [teams, setTeams] = useState<Team[]>([]);
@@ -144,124 +159,140 @@ export default function TeamsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">팀 관리</h1>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">팀 관리</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          챌린지별 팀을 구성하고 관리합니다
+        </p>
+      </div>
 
       {error && (
         <ErrorAlert message={error} onDismiss={() => setError("")} />
       )}
 
-      <div>
-        <label
-          htmlFor="challengeSelect"
-          className="block text-sm font-medium"
-        >
-          챌린지 선택
-        </label>
-        <select
-          id="challengeSelect"
+      <div className="space-y-2">
+        <Label htmlFor="challengeSelect">챌린지 선택</Label>
+        <Select
           value={selectedChallengeId}
-          onChange={(e) => handleChallengeChange(e.target.value)}
+          onValueChange={handleChallengeChange}
           disabled={loadingChallenges}
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
         >
-          <option value="">
-            {loadingChallenges
-              ? "챌린지 로딩 중..."
-              : "챌린지를 선택하세요"}
-          </option>
-          {challenges.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.title}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger id="challengeSelect">
+            <SelectValue
+              placeholder={loadingChallenges ? "챌린지 로딩 중..." : "챌린지를 선택하세요"}
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {challenges.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {selectedChallengeId && (
         <>
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              팀 목록
-            </h3>
+            <p className="text-sm text-muted-foreground">
+              팀 목록{teams.length > 0 ? ` (${teams.length}팀)` : ""}
+            </p>
             <div className="flex gap-2">
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleAutoAssign}
                 disabled={autoAssignLoading}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800"
               >
+                <Wand2 className="mr-2 h-4 w-4" />
                 {autoAssignLoading ? "배정 중..." : "자동 팀 구성"}
-              </button>
-              <button
+              </Button>
+              <Button
+                size="sm"
+                variant={showForm ? "outline" : "default"}
                 onClick={() => setShowForm(!showForm)}
-                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
               >
-                {showForm ? "취소" : "새 팀 만들기"}
-              </button>
+                {showForm ? (
+                  <>
+                    <X className="mr-2 h-4 w-4" />
+                    취소
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    새 팀 만들기
+                  </>
+                )}
+              </Button>
             </div>
           </div>
 
           {showForm && (
-            <form
-              onSubmit={handleCreateTeam}
-              className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
-            >
-              <h3 className="text-base font-semibold">새 팀</h3>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">새 팀 만들기</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleCreateTeam} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="teamName">팀명 *</Label>
+                    <Input
+                      id="teamName"
+                      type="text"
+                      required
+                      value={teamName}
+                      onChange={(e) => setTeamName(e.target.value)}
+                      placeholder="팀 이름"
+                    />
+                  </div>
 
-              <div>
-                <label
-                  htmlFor="teamName"
-                  className="block text-sm font-medium"
-                >
-                  팀명
-                </label>
-                <input
-                  id="teamName"
-                  type="text"
-                  required
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                  placeholder="팀 이름"
-                />
-              </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>멤버1 *</Label>
+                      <UserSearchDropdown
+                        placeholder="사용자 검색 (필수)"
+                        selectedUser={member1}
+                        onSelect={setMember1}
+                        onClear={() => setMember1(null)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>멤버2</Label>
+                      <UserSearchDropdown
+                        placeholder="사용자 검색 (선택)"
+                        selectedUser={member2}
+                        onSelect={setMember2}
+                        onClear={() => setMember2(null)}
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium">
-                    멤버1
-                  </label>
-                  <UserSearchDropdown
-                    placeholder="사용자 검색 (필수)"
-                    selectedUser={member1}
-                    onSelect={setMember1}
-                    onClear={() => setMember1(null)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium">
-                    멤버2
-                  </label>
-                  <UserSearchDropdown
-                    placeholder="사용자 검색 (선택)"
-                    selectedUser={member2}
-                    onSelect={setMember2}
-                    onClear={() => setMember2(null)}
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={formLoading}
-                className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200 sm:w-auto"
-              >
-                {formLoading ? "생성 중..." : "팀 생성"}
-              </button>
-            </form>
+                  <div className="flex gap-2 pt-2">
+                    <Button type="submit" disabled={formLoading || !member1}>
+                      {formLoading ? "생성 중..." : "팀 생성"}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={resetForm}>
+                      취소
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
           )}
 
           {loadingTeams ? (
-            <LoadingSkeleton variant="card" count={3} />
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardContent className="p-5">
+                    <Skeleton className="mb-2 h-5 w-1/4" />
+                    <Skeleton className="mb-1 h-4 w-1/2" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           ) : teams.length === 0 ? (
             <EmptyState
               title="등록된 팀이 없습니다"
@@ -270,35 +301,41 @@ export default function TeamsPage() {
           ) : (
             <div className="space-y-3">
               {teams.map((team) => (
-                <div
-                  key={team.id}
-                  className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h4 className="truncate text-base font-semibold">
-                        {team.name}
-                      </h4>
-                      <div className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                        <p>
-                          멤버1: {team.member1.nickname} ({team.member1.email})
-                        </p>
-                        {team.member2 && (
+                <Card key={team.id}>
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <h4 className="truncate text-base font-semibold">
+                            {team.name}
+                          </h4>
+                        </div>
+                        <Separator className="my-2" />
+                        <div className="space-y-1 text-sm text-muted-foreground">
                           <p>
-                            멤버2: {team.member2.nickname} (
-                            {team.member2.email})
+                            <span className="font-medium text-foreground">멤버1:</span>{" "}
+                            {team.member1.nickname} ({team.member1.email})
                           </p>
-                        )}
+                          {team.member2 && (
+                            <p>
+                              <span className="font-medium text-foreground">멤버2:</span>{" "}
+                              {team.member2.nickname} ({team.member2.email})
+                            </p>
+                          )}
+                        </div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteTeam(team.id, team.name)}
+                        className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <button
-                      onClick={() => handleDeleteTeam(team.id, team.name)}
-                      className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                    >
-                      삭제
-                    </button>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}

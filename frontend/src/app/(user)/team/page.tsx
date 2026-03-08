@@ -3,15 +3,32 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { Team, TeamMission, MissionTemplate } from "@/lib/types";
-import { LoadingSkeleton, ErrorAlert, EmptyState, ProgressBar, useToast } from "@/components/ui";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Badge,
+  Progress,
+  Button,
+  Input,
+  Label,
+  Skeleton,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { Users, Target, Plus, Trash2, TrendingUp, CheckCircle2 } from "lucide-react";
 
 export default function TeamPage() {
-  const toast = useToast();
   const [team, setTeam] = useState<Team | null>(null);
   const [mission, setMission] = useState<TeamMission | null>(null);
-  const [missionTemplates, setMissionTemplates] = useState<MissionTemplate[]>(
-    []
-  );
+  const [missionTemplates, setMissionTemplates] = useState<MissionTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -48,21 +65,18 @@ export default function TeamPage() {
             setMission(currentMission);
           } else {
             setMission(null);
-            const templates =
-              await apiClient.get<MissionTemplate[]>("/api/mission-templates");
+            const templates = await apiClient.get<MissionTemplate[]>("/api/mission-templates");
             setMissionTemplates(templates);
           }
         } else {
           setMission(null);
-          const templates =
-            await apiClient.get<MissionTemplate[]>("/api/mission-templates");
+          const templates = await apiClient.get<MissionTemplate[]>("/api/mission-templates");
           setMissionTemplates(templates);
         }
       } catch {
         setMission(null);
         try {
-          const templates =
-            await apiClient.get<MissionTemplate[]>("/api/mission-templates");
+          const templates = await apiClient.get<MissionTemplate[]>("/api/mission-templates");
           setMissionTemplates(templates);
         } catch {
           // templates fetch failed
@@ -98,16 +112,13 @@ export default function TeamPage() {
     setCreateError("");
     setCreateLoading(true);
     try {
-      const created = await apiClient.post<TeamMission>(
-        "/api/team-missions",
-        {
-          teamId: team.id,
-          challengeId: team.challengeId,
-          missionTemplateId: selectedTemplateId,
-          weekNumber,
-          targetValue: parseFloat(targetValue),
-        }
-      );
+      const created = await apiClient.post<TeamMission>("/api/team-missions", {
+        teamId: team.id,
+        challengeId: team.challengeId,
+        missionTemplateId: selectedTemplateId,
+        weekNumber,
+        targetValue: parseFloat(targetValue),
+      });
       setMission(created);
     } catch (err) {
       setCreateError(
@@ -169,271 +180,290 @@ export default function TeamPage() {
     });
   };
 
+  const getMissionStatusBadge = (status: string) => {
+    if (status === "COMPLETED") return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0">완료</Badge>;
+    if (status === "IN_PROGRESS") return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-0">진행중</Badge>;
+    return <Badge variant="secondary">{status}</Badge>;
+  };
+
+  const selectedTemplate = missionTemplates.find((t) => t.id === selectedTemplateId);
+
+  const progressPercent =
+    mission && mission.targetValue > 0
+      ? Math.min(Math.round((mission.currentValue / mission.targetValue) * 100), 100)
+      : 0;
+
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="h-7 w-24 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
-        <LoadingSkeleton variant="card" count={2} />
+      <div className="space-y-4 p-4">
+        <Skeleton className="h-7 w-28" />
+        <Skeleton className="h-28 w-full rounded-xl" />
+        <Skeleton className="h-40 w-full rounded-xl" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-bold">팀 미션</h1>
-
-      {error && (
-        <ErrorAlert message={error} />
-      )}
-
-      {!team && !error && (
-        <EmptyState
-          title="참여 중인 팀이 없습니다"
-          description="관리자가 팀을 배정하면 미션을 확인할 수 있습니다."
-        />
-      )}
-
-      {team && (
-        <>
-          {/* Team Info */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-            <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              내 팀
-            </h2>
-            <p className="mt-1 text-lg font-bold">{team.name}</p>
-            <div className="mt-2 flex gap-3 text-sm text-gray-600 dark:text-gray-400">
-              <span>{team.member1.nickname}</span>
-              {team.member2 && <span>{team.member2.nickname}</span>}
-            </div>
-          </div>
-
-          {/* Week Indicator */}
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-black px-3 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
+    <div className="flex flex-col">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <Users className="h-5 w-5 text-primary" />
+          <h1 className="text-lg font-bold">팀 미션</h1>
+          {mission && (
+            <Badge variant="outline" className="ml-auto">
               {weekNumber}주차
-            </span>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              팀 미션 현황
-            </span>
-          </div>
-
-          {mission ? (
-            <>
-              {/* Mission Card */}
-              <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold">
-                      {mission.missionTemplateName}
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                      목표: {mission.targetValue} {mission.unit}
-                    </p>
-                  </div>
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                      mission.status === "COMPLETED"
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : mission.status === "IN_PROGRESS"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                          : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                    }`}
-                  >
-                    {mission.status === "COMPLETED"
-                      ? "완료"
-                      : mission.status === "IN_PROGRESS"
-                        ? "진행중"
-                        : mission.status}
-                  </span>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="mt-4">
-                  <ProgressBar
-                    value={
-                      mission.targetValue > 0
-                        ? Math.min(
-                            Math.round(
-                              (mission.currentValue / mission.targetValue) * 100
-                            ),
-                            100
-                          )
-                        : 0
-                    }
-                    size="lg"
-                    showLabel
-                    className="mb-1"
-                  />
-                  <div className="mt-1 flex justify-between text-xs text-gray-400">
-                    <span>
-                      현재 {mission.currentValue} {mission.unit}
-                    </span>
-                    <span>
-                      목표 {mission.targetValue} {mission.unit}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress Update Form */}
-              <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  진행 업데이트
-                </h3>
-                <form onSubmit={handleProgressUpdate} className="mt-3">
-                  {progressError && (
-                    <div className="mb-3">
-                      <ErrorAlert message={progressError} />
-                    </div>
-                  )}
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      step="0.1"
-                      required
-                      value={progressValue}
-                      onChange={(e) => setProgressValue(e.target.value)}
-                      placeholder={`현재 값 (${mission.unit})`}
-                      className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                    />
-                    <button
-                      type="submit"
-                      disabled={progressLoading || !progressValue}
-                      className="shrink-0 rounded-lg bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-                    >
-                      {progressLoading ? "..." : "업데이트"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* Delete Mission */}
-              <button
-                type="button"
-                onClick={handleDeleteMission}
-                disabled={deleteLoading}
-                className="w-full rounded-lg border border-red-300 px-6 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
-              >
-                {deleteLoading ? "삭제 중..." : "미션 삭제"}
-              </button>
-
-              {/* Verifications List */}
-              {mission.verifications && mission.verifications.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    인증 기록 ({mission.verifications.length})
-                  </h3>
-                  {mission.verifications.map((v) => (
-                    <div
-                      key={v.id}
-                      className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
-                          {v.userNickname}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                              v.verified
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                            }`}
-                          >
-                            {v.verified ? "인증됨" : "대기중"}
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            {formatDate(v.createdAt)}
-                          </span>
-                        </div>
-                      </div>
-                      {v.memo && (
-                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                          {v.memo}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            /* Create Mission Form */
-            <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-              <h3 className="font-semibold">이번 주 팀 미션 입력</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                이번 주에 수행할 팀 미션을 선택하고 목표를 입력하세요.
-              </p>
-
-              <form onSubmit={handleCreateMission} className="mt-4 space-y-4">
-                {createError && (
-                  <ErrorAlert message={createError} />
-                )}
-
-                <div>
-                  <label
-                    htmlFor="mission-template"
-                    className="block text-sm font-medium"
-                  >
-                    미션 선택
-                  </label>
-                  <select
-                    id="mission-template"
-                    value={selectedTemplateId}
-                    onChange={(e) => setSelectedTemplateId(e.target.value)}
-                    required
-                    className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                  >
-                    <option value="">미션을 선택하세요</option>
-                    {missionTemplates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                        {t.description ? ` — ${t.description}` : ""} ({t.unit})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="target-value"
-                    className="block text-sm font-medium"
-                  >
-                    목표 값
-                    {selectedTemplateId &&
-                      (() => {
-                        const selected = missionTemplates.find(
-                          (t) => t.id === selectedTemplateId
-                        );
-                        return selected ? ` (${selected.unit})` : "";
-                      })()}
-                  </label>
-                  <input
-                    id="target-value"
-                    type="number"
-                    step="0.1"
-                    required
-                    value={targetValue}
-                    onChange={(e) => setTargetValue(e.target.value)}
-                    placeholder="예: 10"
-                    className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={
-                    createLoading || !selectedTemplateId || !targetValue
-                  }
-                  className="w-full rounded-lg bg-black px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-                >
-                  {createLoading ? "생성 중..." : "팀 미션 생성"}
-                </button>
-              </form>
-            </div>
+            </Badge>
           )}
-        </>
-      )}
+        </div>
+      </div>
+
+      <div className="space-y-4 p-4">
+        {error && (
+          <Card className="border-destructive/50 bg-destructive/5">
+            <CardContent className="pt-4">
+              <p className="text-sm text-destructive">{error}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {!team && !error && (
+          <Card>
+            <CardContent className="flex flex-col items-center py-10 text-center">
+              <Users className="mb-3 h-10 w-10 text-muted-foreground" />
+              <p className="font-medium">참여 중인 팀이 없습니다</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                관리자가 팀을 배정하면 미션을 확인할 수 있습니다.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {team && (
+          <>
+            {/* Team Info */}
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">내 팀</p>
+                    <p className="font-bold">{team.name}</p>
+                  </div>
+                  <div className="ml-auto flex gap-1.5">
+                    <Badge variant="secondary" className="text-xs">
+                      {team.member1.nickname}
+                    </Badge>
+                    {team.member2 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {team.member2.nickname}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Week Indicator */}
+            <div className="flex items-center gap-2">
+              <Badge className="bg-primary text-primary-foreground">
+                {weekNumber}주차
+              </Badge>
+              <span className="text-sm text-muted-foreground">팀 미션 현황</span>
+            </div>
+
+            {mission ? (
+              <>
+                {/* Mission Card */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <CardTitle className="text-base">
+                          {mission.missionTemplateName}
+                        </CardTitle>
+                        <CardDescription className="mt-0.5">
+                          목표: {mission.targetValue} {mission.unit}
+                        </CardDescription>
+                      </div>
+                      {getMissionStatusBadge(mission.status)}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Progress value={progressPercent} className="h-2.5" />
+                    <div className="mt-1.5 flex justify-between text-xs text-muted-foreground">
+                      <span>현재 {mission.currentValue} {mission.unit}</span>
+                      <span>{progressPercent}% 달성</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Progress Update Form */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <TrendingUp className="h-4 w-4 text-primary" />
+                      진행 업데이트
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleProgressUpdate} className="space-y-3">
+                      {progressError && (
+                        <div className="rounded-lg border border-destructive/50 bg-destructive/5 px-3 py-2">
+                          <p className="text-sm text-destructive">{progressError}</p>
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          required
+                          value={progressValue}
+                          onChange={(e) => setProgressValue(e.target.value)}
+                          placeholder={`현재 값 (${mission.unit})`}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="submit"
+                          disabled={progressLoading || !progressValue}
+                          className="shrink-0"
+                        >
+                          {progressLoading ? "..." : "업데이트"}
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+
+                {/* Delete Mission */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDeleteMission}
+                  disabled={deleteLoading}
+                  className="w-full border-destructive/50 text-destructive hover:bg-destructive/5 hover:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {deleteLoading ? "삭제 중..." : "미션 삭제"}
+                </Button>
+
+                {/* Verifications List */}
+                {mission.verifications && mission.verifications.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-medium text-muted-foreground">인증 기록</h3>
+                      <Badge variant="secondary" className="text-xs">
+                        {mission.verifications.length}
+                      </Badge>
+                    </div>
+                    {mission.verifications.map((v) => (
+                      <Card
+                        key={v.id}
+                        className={cn(
+                          !v.verified && "border-primary/20 bg-primary/5"
+                        )}
+                      >
+                        <CardContent className="pt-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">{v.userNickname}</span>
+                            <div className="flex items-center gap-2">
+                              {v.verified ? (
+                                <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0 text-xs">
+                                  인증됨
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-0 text-xs">
+                                  대기중
+                                </Badge>
+                              )}
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(v.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                          {v.memo && (
+                            <p className="mt-2 text-sm text-muted-foreground">{v.memo}</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Create Mission Form */
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Plus className="h-5 w-5 text-primary" />
+                    이번 주 팀 미션 입력
+                  </CardTitle>
+                  <CardDescription>
+                    이번 주에 수행할 팀 미션을 선택하고 목표를 입력하세요.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleCreateMission} className="space-y-4">
+                    {createError && (
+                      <div className="rounded-lg border border-destructive/50 bg-destructive/5 px-3 py-2">
+                        <p className="text-sm text-destructive">{createError}</p>
+                      </div>
+                    )}
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="mission-template">미션 선택</Label>
+                      <Select
+                        value={selectedTemplateId}
+                        onValueChange={setSelectedTemplateId}
+                        required
+                      >
+                        <SelectTrigger id="mission-template">
+                          <SelectValue placeholder="미션을 선택하세요" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {missionTemplates.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.name}
+                              {t.description ? ` — ${t.description}` : ""} ({t.unit})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="target-value">
+                        목표 값
+                        {selectedTemplate ? ` (${selectedTemplate.unit})` : ""}
+                      </Label>
+                      <Input
+                        id="target-value"
+                        type="number"
+                        step="0.1"
+                        required
+                        value={targetValue}
+                        onChange={(e) => setTargetValue(e.target.value)}
+                        placeholder="예: 10"
+                      />
+                    </div>
+
+                    <Button
+                      type="submit"
+                      disabled={createLoading || !selectedTemplateId || !targetValue}
+                      className="w-full"
+                    >
+                      <Target className="mr-2 h-4 w-4" />
+                      {createLoading ? "생성 중..." : "팀 미션 생성"}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,12 +1,27 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { Team, TeamMission, Verification } from "@/lib/types";
-import { LoadingSkeleton, ErrorAlert, EmptyState, ProgressBar, useToast } from "@/components/ui";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Badge,
+  Progress,
+  Button,
+  Input,
+  Label,
+  Textarea,
+  Skeleton,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { Camera, Upload, Check, Trash2, ImageIcon } from "lucide-react";
 
 export default function VerifyPage() {
-  const toast = useToast();
   const [team, setTeam] = useState<Team | null>(null);
   const [mission, setMission] = useState<TeamMission | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,6 +38,7 @@ export default function VerifyPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const [weekNumber, setWeekNumber] = useState(1);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchMission = useCallback(
     async (teamId: string, challengeId: string) => {
@@ -165,203 +181,252 @@ export default function VerifyPage() {
     });
   };
 
+  const getMissionStatusBadge = (status: string) => {
+    if (status === "COMPLETED") return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0">완료</Badge>;
+    if (status === "IN_PROGRESS") return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-0">진행중</Badge>;
+    return <Badge variant="secondary">{status}</Badge>;
+  };
+
+  const progressValue =
+    mission && mission.targetValue > 0
+      ? Math.min(Math.round((mission.currentValue / mission.targetValue) * 100), 100)
+      : 0;
+
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="h-7 w-24 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
-        <LoadingSkeleton variant="form" count={1} />
+      <div className="space-y-4 p-4">
+        <Skeleton className="h-7 w-32" />
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-48 w-full rounded-xl" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-bold">미션 인증</h1>
+    <div className="flex flex-col">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <Camera className="h-5 w-5 text-primary" />
+          <h1 className="text-lg font-bold">미션 인증</h1>
+          {mission && (
+            <Badge variant="outline" className="ml-auto">
+              {weekNumber}주차
+            </Badge>
+          )}
+        </div>
+      </div>
 
-      {error && (
-        <ErrorAlert message={error} />
-      )}
+      <div className="space-y-4 p-4">
+        {error && (
+          <Card className="border-destructive/50 bg-destructive/5">
+            <CardContent className="pt-4">
+              <p className="text-sm text-destructive">{error}</p>
+            </CardContent>
+          </Card>
+        )}
 
-      {team && !mission && (
-        <EmptyState
-          title="이번 주 팀 미션이 없습니다"
-          description="팀 탭에서 먼저 미션을 생성해주세요."
-        />
-      )}
+        {team && !mission && (
+          <Card>
+            <CardContent className="flex flex-col items-center py-10 text-center">
+              <Camera className="mb-3 h-10 w-10 text-muted-foreground" />
+              <p className="font-medium">이번 주 팀 미션이 없습니다</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                팀 탭에서 먼저 미션을 생성해주세요.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
-      {mission && (
-        <>
-          {/* Current Mission Info */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-black px-3 py-1 text-xs font-medium text-white dark:bg-white dark:text-black">
-                {weekNumber}주차
-              </span>
-              <span
-                className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                  mission.status === "COMPLETED"
-                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                    : mission.status === "IN_PROGRESS"
-                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                      : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                }`}
-              >
-                {mission.status === "COMPLETED"
-                  ? "완료"
-                  : mission.status === "IN_PROGRESS"
-                    ? "진행중"
-                    : mission.status}
-              </span>
-            </div>
-            <h2 className="mt-3 text-lg font-bold">
-              {mission.missionTemplateName}
-            </h2>
-            <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              현재 {mission.currentValue} / {mission.targetValue}{" "}
-              {mission.unit}
-            </div>
-            <ProgressBar
-              value={
-                mission.targetValue > 0
-                  ? Math.min(
-                      Math.round(
-                        (mission.currentValue / mission.targetValue) * 100
-                      ),
-                      100
-                    )
-                  : 0
-              }
-              showLabel
-              className="mt-2"
-            />
-          </div>
+        {mission && (
+          <>
+            {/* Current Mission Info */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">{mission.missionTemplateName}</CardTitle>
+                  {getMissionStatusBadge(mission.status)}
+                </div>
+                <CardDescription>
+                  현재 {mission.currentValue} / {mission.targetValue} {mission.unit}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Progress value={progressValue} className="h-2" />
+                <p className="mt-1.5 text-right text-xs text-muted-foreground">{progressValue}%</p>
+              </CardContent>
+            </Card>
 
-          {/* Verification Form */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-            <h3 className="font-semibold">인증 등록</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              미션 수행을 인증하세요.
-            </p>
+            {/* Verification Form */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">인증 등록</CardTitle>
+                <CardDescription>미션 수행을 인증하세요.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmitVerification} className="space-y-4">
+                  {submitError && (
+                    <div className="rounded-lg border border-destructive/50 bg-destructive/5 px-3 py-2">
+                      <p className="text-sm text-destructive">{submitError}</p>
+                    </div>
+                  )}
 
-            <form
-              onSubmit={handleSubmitVerification}
-              className="mt-4 space-y-4"
-            >
-              {submitError && (
-                <ErrorAlert message={submitError} />
-              )}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="verify-memo">메모</Label>
+                    <Textarea
+                      id="verify-memo"
+                      value={memo}
+                      onChange={(e) => setMemo(e.target.value)}
+                      placeholder="인증 내용을 간단히 적어주세요"
+                      className="resize-none"
+                      rows={3}
+                    />
+                  </div>
 
-              <div>
-                <label htmlFor="verify-memo" className="block text-sm font-medium">
-                  메모
-                </label>
-                <input
-                  id="verify-memo"
-                  type="text"
-                  value={memo}
-                  onChange={(e) => setMemo(e.target.value)}
-                  placeholder="인증 내용을 간단히 적어주세요"
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                />
-              </div>
+                  <div className="space-y-1.5">
+                    <Label>이미지</Label>
+                    {/* Dashed upload area */}
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className={cn(
+                        "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 transition-colors",
+                        imagePreview
+                          ? "border-primary/50 bg-primary/5"
+                          : "border-border hover:border-primary/50 hover:bg-muted/50"
+                      )}
+                    >
+                      {imagePreview ? (
+                        <img
+                          src={imagePreview}
+                          alt="미리보기"
+                          className="h-32 w-32 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <>
+                          <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
+                          <p className="text-sm font-medium">이미지 업로드</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            클릭하여 사진을 선택하세요
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                    {imagePreview && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground"
+                        onClick={() => {
+                          setImageFile(null);
+                          setImagePreview(null);
+                        }}
+                      >
+                        이미지 제거
+                      </Button>
+                    )}
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium">이미지</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:rounded-lg file:border-0 file:bg-black file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-gray-800 dark:file:bg-white dark:file:text-black"
-                />
-                {imagePreview && (
-                  <img
-                    src={imagePreview}
-                    alt="미리보기"
-                    className="mt-2 h-32 w-32 rounded-lg object-cover"
-                  />
+                  <Button
+                    type="submit"
+                    disabled={submitLoading || uploadingImage}
+                    className="w-full"
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    {uploadingImage
+                      ? "이미지 업로드 중..."
+                      : submitLoading
+                        ? "등록 중..."
+                        : "인증 등록"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Verifications List */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium text-muted-foreground">인증 기록</h3>
+                {mission.verifications && mission.verifications.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {mission.verifications.length}
+                  </Badge>
                 )}
               </div>
 
-              <button
-                type="submit"
-                disabled={submitLoading || uploadingImage}
-                className="w-full rounded-lg bg-black px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-              >
-                {uploadingImage
-                  ? "이미지 업로드 중..."
-                  : submitLoading
-                    ? "등록 중..."
-                    : "인증 등록"}
-              </button>
-            </form>
-          </div>
-
-          {/* Verifications List */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              인증 기록{" "}
-              {mission.verifications && mission.verifications.length > 0 && (
-                <span>({mission.verifications.length})</span>
-              )}
-            </h3>
-
-            {!mission.verifications || mission.verifications.length === 0 ? (
-              <EmptyState
-                title="아직 인증 기록이 없습니다"
-                description="위 폼에서 미션 인증을 등록해보세요."
-              />
-            ) : (
-              mission.verifications.map((v) => (
-                <div
-                  key={v.id}
-                  className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      {v.userNickname}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          v.verified
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                        }`}
-                      >
-                        {v.verified ? "인증됨" : "대기중"}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {formatDate(v.createdAt)}
-                      </span>
-                      {!v.verified && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteVerification(v.id)}
-                          className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                        >
-                          삭제
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  {v.memo && (
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                      {v.memo}
+              {!mission.verifications || mission.verifications.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center py-8 text-center">
+                    <ImageIcon className="mb-2 h-8 w-8 text-muted-foreground" />
+                    <p className="text-sm font-medium">아직 인증 기록이 없습니다</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      위 폼에서 미션 인증을 등록해보세요.
                     </p>
-                  )}
-                  {v.imageUrl && v.imageUrl !== "placeholder-image-url" && (
-                    <img
-                      src={v.imageUrl}
-                      alt="인증 이미지"
-                      className="mt-2 h-24 w-24 rounded-lg object-cover"
-                    />
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </>
-      )}
+                  </CardContent>
+                </Card>
+              ) : (
+                mission.verifications.map((v) => (
+                  <Card
+                    key={v.id}
+                    className={cn(
+                      "transition-colors",
+                      !v.verified && "border-primary/20 bg-primary/5"
+                    )}
+                  >
+                    <CardContent className="pt-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{v.userNickname}</span>
+                        <div className="flex items-center gap-2">
+                          {v.verified ? (
+                            <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0 text-xs">
+                              인증됨
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-0 text-xs">
+                              대기중
+                            </Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(v.createdAt)}
+                          </span>
+                          {!v.verified && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteVerification(v.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      {v.memo && (
+                        <p className="mt-2 text-sm text-muted-foreground">{v.memo}</p>
+                      )}
+                      {v.imageUrl && v.imageUrl !== "placeholder-image-url" && (
+                        <img
+                          src={v.imageUrl}
+                          alt="인증 이미지"
+                          className="mt-2 h-24 w-24 rounded-lg object-cover"
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

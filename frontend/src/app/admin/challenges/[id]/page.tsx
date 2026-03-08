@@ -3,9 +3,44 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import type { Challenge, Participant } from "@/lib/types";
-import { LoadingSkeleton, ErrorAlert, EmptyState, useToast } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ErrorAlert } from "@/components/ui/legacy/ErrorAlert";
+import { EmptyState } from "@/components/ui/legacy/EmptyState";
+import {
+  ArrowLeft,
+  Copy,
+  Check,
+  Pencil,
+  X,
+  Calendar,
+  Clock,
+  Users,
+} from "lucide-react";
 
 interface ChallengeMemberDetail {
   userId: string;
@@ -29,10 +64,25 @@ interface ChallengeDetailWithMembers {
   totalMembers: number;
 }
 
-type StatusTab = "individual" | "team";
+const STATUS_CONFIG: Record<
+  Challenge["status"],
+  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
+  PREPARING: { label: "준비중", variant: "secondary" },
+  ACTIVE: { label: "진행중", variant: "default" },
+  COMPLETED: { label: "완료", variant: "outline" },
+};
+
+const PARTICIPANT_STATUS_CONFIG: Record<
+  string,
+  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
+  APPROVED: { label: "승인", variant: "default" },
+  PENDING: { label: "대기", variant: "secondary" },
+  REJECTED: { label: "거절", variant: "destructive" },
+};
 
 export default function ChallengeDetailPage() {
-  const toast = useToast();
   const params = useParams();
   const id = params.id as string;
 
@@ -42,10 +92,6 @@ export default function ChallengeDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState<StatusTab>("individual");
-
-  // Edit mode
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -54,7 +100,6 @@ export default function ChallengeDetailPage() {
   const [editInbodyFrequencyDays, setEditInbodyFrequencyDays] = useState("7");
   const [editLoading, setEditLoading] = useState(false);
 
-  // Copy feedback
   const [copied, setCopied] = useState(false);
 
   const fetchChallenge = useCallback(async () => {
@@ -145,56 +190,6 @@ export default function ChallengeDetailPage() {
     }
   };
 
-  const statusBadge = (status: Challenge["status"]) => {
-    const styles = {
-      PREPARING:
-        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-      ACTIVE:
-        "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-      COMPLETED:
-        "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-    };
-    const labels = {
-      PREPARING: "준비중",
-      ACTIVE: "진행중",
-      COMPLETED: "완료",
-    };
-    return (
-      <span
-        className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status]}`}
-      >
-        {labels[status]}
-      </span>
-    );
-  };
-
-  const participantStatusBadge = (status: string) => {
-    const config: Record<string, { style: string; label: string }> = {
-      APPROVED: {
-        style: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-        label: "승인",
-      },
-      PENDING: {
-        style: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-        label: "대기",
-      },
-      REJECTED: {
-        style: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-        label: "거절",
-      },
-    };
-    const { style, label } = config[status] || {
-      style: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-      label: status,
-    };
-    return (
-      <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${style}`}>
-        {label}
-      </span>
-    );
-  };
-
-  // Participant summary stats
   const participantStats = {
     total: participants.length,
     approved: participants.filter((p) => p.status === "APPROVED").length,
@@ -206,13 +201,19 @@ export default function ChallengeDetailPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <Link
-          href="/admin/challenges"
-          className="inline-flex items-center gap-1 text-sm text-gray-600 transition hover:text-black dark:text-gray-400 dark:hover:text-white"
-        >
-          &larr; 챌린지 목록
-        </Link>
-        <LoadingSkeleton variant="form" />
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/admin/challenges">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            챌린지 목록
+          </Link>
+        </Button>
+        <Card>
+          <CardContent className="p-5">
+            <Skeleton className="mb-3 h-6 w-1/3" />
+            <Skeleton className="mb-2 h-4 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -220,428 +221,394 @@ export default function ChallengeDetailPage() {
   if (!challenge) {
     return (
       <div className="space-y-6">
-        <Link
-          href="/admin/challenges"
-          className="inline-flex items-center gap-1 text-sm text-gray-600 transition hover:text-black dark:text-gray-400 dark:hover:text-white"
-        >
-          &larr; 챌린지 목록
-        </Link>
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/admin/challenges">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            챌린지 목록
+          </Link>
+        </Button>
         <ErrorAlert message="챌린지를 찾을 수 없습니다." />
       </div>
     );
   }
 
+  const statusCfg = STATUS_CONFIG[challenge.status];
+
   return (
     <div className="space-y-6">
-      {/* Back button */}
-      <Link
-        href="/admin/challenges"
-        className="inline-flex items-center gap-1 text-sm text-gray-600 transition hover:text-black dark:text-gray-400 dark:hover:text-white"
-      >
-        &larr; 챌린지 목록
-      </Link>
+      <Button variant="ghost" size="sm" asChild>
+        <Link href="/admin/challenges">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          챌린지 목록
+        </Link>
+      </Button>
 
       {error && (
         <ErrorAlert message={error} onRetry={fetchChallenge} onDismiss={() => setError("")} />
       )}
 
       {/* Section 1: 기본 정보 */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-        {!editing ? (
-          <>
+      <Card>
+        <CardContent className="p-5">
+          {!editing ? (
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl font-bold tracking-tight">
                     {challenge.title}
                   </h1>
-                  {statusBadge(challenge.status)}
+                  <Badge variant={statusCfg.variant}>{statusCfg.label}</Badge>
                 </div>
                 {challenge.description && (
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  <p className="mt-2 text-sm text-muted-foreground">
                     {challenge.description}
                   </p>
                 )}
-                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
-                  <span>
-                    기간: {challenge.startDate} ~ {challenge.endDate}{challenge.durationDays ? ` (${challenge.durationDays}일)` : ""}
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {challenge.startDate} ~ {challenge.endDate}
+                    {challenge.durationDays ? ` (${challenge.durationDays}일)` : ""}
                   </span>
                   {challenge.inbodyFrequencyDays && (
                     <span>인바디 주기: {challenge.inbodyFrequencyDays}일</span>
                   )}
-                  <span>현재 주차: {challenge.currentWeek}주</span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    {challenge.currentWeek}주차
+                  </span>
                 </div>
                 {challenge.goalTypes && challenge.goalTypes.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {challenge.goalTypes.map((gt) => (
-                      <span
-                        key={gt.id}
-                        className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                      >
+                      <Badge key={gt.id} variant="secondary" className="text-xs">
                         {gt.name}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 )}
               </div>
-              <button
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() => setEditing(true)}
-                className="shrink-0 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
               >
+                <Pencil className="mr-2 h-3.5 w-3.5" />
                 수정
-              </button>
+              </Button>
             </div>
-          </>
-        ) : (
-          <form onSubmit={handleEdit} className="space-y-4">
-            <h2 className="text-lg font-semibold">챌린지 수정</h2>
+          ) : (
+            <form onSubmit={handleEdit} className="space-y-4">
+              <h2 className="text-lg font-semibold">챌린지 수정</h2>
 
-            <div>
-              <label htmlFor="editTitle" className="block text-sm font-medium">
-                챌린지 이름
-              </label>
-              <input
-                id="editTitle"
-                type="text"
-                required
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="editTitle">챌린지 이름 *</Label>
+                <Input
+                  id="editTitle"
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="editDescription"
-                className="block text-sm font-medium"
-              >
-                설명
-              </label>
-              <textarea
-                id="editDescription"
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                rows={3}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="editDescription">설명</Label>
+                <Textarea
+                  id="editDescription"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows={3}
+                />
+              </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="editStartDate"
-                  className="block text-sm font-medium"
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="editStartDate">시작일 *</Label>
+                  <Input
+                    id="editStartDate"
+                    type="date"
+                    required
+                    value={editStartDate}
+                    onChange={(e) => setEditStartDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editDurationDays">챌린지 기간 (일) *</Label>
+                  <Input
+                    id="editDurationDays"
+                    type="number"
+                    required
+                    min={1}
+                    value={editDurationDays}
+                    onChange={(e) => setEditDurationDays(e.target.value)}
+                    placeholder="예: 28"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    시작일로부터 {editDurationDays || 0}일 후 종료
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editInbodyFrequency">인바디 등록 주기</Label>
+                <Select
+                  value={editInbodyFrequencyDays}
+                  onValueChange={setEditInbodyFrequencyDays}
                 >
-                  시작일
-                </label>
-                <input
-                  id="editStartDate"
-                  type="date"
-                  required
-                  value={editStartDate}
-                  onChange={(e) => setEditStartDate(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                />
+                  <SelectTrigger id="editInbodyFrequency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">3일마다</SelectItem>
+                    <SelectItem value="5">5일마다</SelectItem>
+                    <SelectItem value="7">7일마다 (주 1회)</SelectItem>
+                    <SelectItem value="14">14일마다 (격주)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div>
-                <label htmlFor="editDurationDays" className="block text-sm font-medium">
-                  챌린지 기간 (일)
-                </label>
-                <input
-                  id="editDurationDays"
-                  type="number"
-                  required
-                  min={1}
-                  value={editDurationDays}
-                  onChange={(e) => setEditDurationDays(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                  placeholder="예: 28"
-                />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  시작일로부터 {editDurationDays || 0}일 후 종료
-                </p>
+
+              <div className="flex gap-2 pt-2">
+                <Button type="submit" disabled={editLoading}>
+                  {editLoading ? "저장 중..." : "저장"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setEditing(false);
+                    setEditTitle(challenge.title);
+                    setEditDescription(challenge.description || "");
+                    setEditStartDate(challenge.startDate);
+                    setEditDurationDays(challenge.durationDays?.toString() || "28");
+                    setEditInbodyFrequencyDays(challenge.inbodyFrequencyDays?.toString() || "7");
+                  }}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  취소
+                </Button>
               </div>
-            </div>
-
-            <div>
-              <label htmlFor="editInbodyFrequency" className="block text-sm font-medium">
-                인바디 등록 주기 (일)
-              </label>
-              <select
-                id="editInbodyFrequency"
-                value={editInbodyFrequencyDays}
-                onChange={(e) => setEditInbodyFrequencyDays(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-              >
-                <option value="3">3일마다</option>
-                <option value="5">5일마다</option>
-                <option value="7">7일마다 (주 1회)</option>
-                <option value="14">14일마다 (격주)</option>
-              </select>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={editLoading}
-                className="rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-              >
-                {editLoading ? "저장 중..." : "저장"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEditing(false);
-                  setEditTitle(challenge.title);
-                  setEditDescription(challenge.description || "");
-                  setEditStartDate(challenge.startDate);
-                  setEditDurationDays(challenge.durationDays?.toString() || "28");
-                  setEditInbodyFrequencyDays(challenge.inbodyFrequencyDays?.toString() || "7");
-                }}
-                className="rounded-lg border border-gray-300 px-6 py-3 text-sm font-medium transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-              >
-                취소
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
+            </form>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Section 2: 초대 링크 */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-        <h2 className="text-lg font-semibold">초대 링크</h2>
-        <div className="mt-3 flex items-center gap-3">
-          <code className="min-w-0 flex-1 truncate rounded-lg bg-gray-100 px-3 py-2 text-sm dark:bg-gray-800">
-            {typeof window !== "undefined"
-              ? `${window.location.origin}/join/${challenge.inviteCode}`
-              : `/join/${challenge.inviteCode}`}
-          </code>
-          <button
-            onClick={handleCopy}
-            className="shrink-0 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-          >
-            {copied ? "복사 완료!" : "복사"}
-          </button>
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">초대 링크</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <code className="min-w-0 flex-1 truncate rounded-md bg-muted px-3 py-2 text-sm font-mono">
+              {typeof window !== "undefined"
+                ? `${window.location.origin}/join/${challenge.inviteCode}`
+                : `/join/${challenge.inviteCode}`}
+            </code>
+            <Button size="sm" onClick={handleCopy} variant={copied ? "outline" : "default"}>
+              {copied ? (
+                <>
+                  <Check className="mr-2 h-4 w-4 text-green-500" />
+                  복사 완료
+                </>
+              ) : (
+                <>
+                  <Copy className="mr-2 h-4 w-4" />
+                  복사
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Section 3: 참여 현황 — Tab Switcher */}
-      <div className="space-y-4">
-        {/* Tab Switcher */}
-        <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-100 p-1 dark:border-gray-700 dark:bg-gray-800">
-          <button
-            onClick={() => setActiveTab("individual")}
-            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition ${
-              activeTab === "individual"
-                ? "bg-white text-black shadow-sm dark:bg-gray-900 dark:text-white"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            }`}
-          >
+      {/* Section 3: 참여 현황 — Tabs */}
+      <Tabs defaultValue="individual">
+        <TabsList className="w-full">
+          <TabsTrigger value="individual" className="flex-1">
+            <Users className="mr-2 h-4 w-4" />
             개인 현황
-          </button>
-          <button
-            onClick={() => setActiveTab("team")}
-            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition ${
-              activeTab === "team"
-                ? "bg-white text-black shadow-sm dark:bg-gray-900 dark:text-white"
-                : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            }`}
-          >
+          </TabsTrigger>
+          <TabsTrigger value="team" className="flex-1">
+            <Users className="mr-2 h-4 w-4" />
             팀별 현황
-          </button>
-        </div>
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Individual Participant View */}
-        {activeTab === "individual" && (
-          <div className="space-y-4">
-            {/* Summary Stats */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-                <p className="text-xs text-gray-500 dark:text-gray-400">전체 참여자</p>
+        {/* Individual Tab */}
+        <TabsContent value="individual" className="space-y-4 pt-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">전체 참여자</p>
                 <p className="mt-1 text-2xl font-bold">{participantStats.total}</p>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-                <p className="text-xs text-gray-500 dark:text-gray-400">승인</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">승인</p>
                 <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">
                   {participantStats.approved}
                 </p>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-                <p className="text-xs text-gray-500 dark:text-gray-400">대기</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">대기</p>
                 <p className="mt-1 text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                   {participantStats.pending}
                 </p>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-                <p className="text-xs text-gray-500 dark:text-gray-400">팀 배정</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted-foreground">팀 배정</p>
                 <p className="mt-1 text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {participantStats.teamAssigned}
                 </p>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
+          </div>
 
-            {/* Participant Table */}
-            {participants.length === 0 ? (
-              <EmptyState
-                title="참여자가 없습니다"
-                description="초대 링크를 공유하여 참여자를 모집하세요."
-              />
-            ) : (
-              <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                        <th className="px-5 py-3 font-medium">닉네임</th>
-                        <th className="px-5 py-3 font-medium">이메일</th>
-                        <th className="px-5 py-3 font-medium">상태</th>
-                        <th className="px-5 py-3 font-medium">팀 배정</th>
-                        <th className="px-5 py-3 font-medium">InBody</th>
-                        <th className="px-5 py-3 font-medium">목표</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {participants.map((participant) => (
-                        <tr
-                          key={participant.id}
-                          className="border-b border-gray-100 last:border-0 dark:border-gray-800"
-                        >
-                          <td className="px-5 py-3 font-medium">{participant.nickname}</td>
-                          <td className="px-5 py-3 text-gray-600 dark:text-gray-400">
+          {participants.length === 0 ? (
+            <EmptyState
+              title="참여자가 없습니다"
+              description="초대 링크를 공유하여 참여자를 모집하세요."
+            />
+          ) : (
+            <Card>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>닉네임</TableHead>
+                      <TableHead>이메일</TableHead>
+                      <TableHead>상태</TableHead>
+                      <TableHead>팀 배정</TableHead>
+                      <TableHead>InBody</TableHead>
+                      <TableHead>목표</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {participants.map((participant) => {
+                      const pStatusCfg = PARTICIPANT_STATUS_CONFIG[participant.status];
+                      return (
+                        <TableRow key={participant.id}>
+                          <TableCell className="font-medium">
+                            {participant.nickname}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
                             {participant.email}
-                          </td>
-                          <td className="px-5 py-3">
-                            {participantStatusBadge(participant.status)}
-                          </td>
-                          <td className="px-5 py-3">
-                            {participant.hasTeam ? (
-                              <span className="inline-block rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                                팀 배정
-                              </span>
-                            ) : (
-                              <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                                미배정
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-5 py-3">
-                            {participant.hasInbody ? (
-                              <span className="inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                입력 완료
-                              </span>
-                            ) : (
-                              <span className="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                                미입력
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-5 py-3">
-                            {participant.hasGoals ? (
-                              <span className="inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                설정됨
-                              </span>
-                            ) : (
-                              <span className="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                                미설정
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={pStatusCfg?.variant ?? "outline"}>
+                              {pStatusCfg?.label ?? participant.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={participant.hasTeam ? "default" : "secondary"}>
+                              {participant.hasTeam ? "팀 배정" : "미배정"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={participant.hasInbody ? "default" : "destructive"}>
+                              {participant.hasInbody ? "입력 완료" : "미입력"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={participant.hasGoals ? "default" : "destructive"}>
+                              {participant.hasGoals ? "설정됨" : "미설정"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Team Tab */}
+        <TabsContent value="team" className="space-y-4 pt-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">팀별 현황</h2>
+            {memberData && (
+              <span className="text-sm text-muted-foreground">
+                ({memberData.totalTeams}팀 / {memberData.totalMembers}명)
+              </span>
             )}
           </div>
-        )}
 
-        {/* Team View */}
-        {activeTab === "team" && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">
-              팀별 현황{" "}
-              {memberData && (
-                <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                  ({memberData.totalTeams}팀 / {memberData.totalMembers}명)
-                </span>
-              )}
-            </h2>
-
-            {!memberData || memberData.teams.length === 0 ? (
-              <EmptyState
-                title="참여 중인 팀이 없습니다"
-                description="팀 관리 페이지에서 팀을 구성하세요."
-              />
-            ) : (
-              <div className="space-y-3">
-                {memberData.teams.map((team) => (
-                  <div
-                    key={team.teamId}
-                    className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
-                  >
-                    <h3 className="text-base font-semibold">{team.teamName}</h3>
-                    <div className="mt-3 overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                            <th className="pb-2 pr-4 font-medium">닉네임</th>
-                            <th className="pb-2 pr-4 font-medium">이메일</th>
-                            <th className="pb-2 pr-4 font-medium">InBody</th>
-                            <th className="pb-2 font-medium">목표</th>
-                          </tr>
-                        </thead>
-                        <tbody>
+          {!memberData || memberData.teams.length === 0 ? (
+            <EmptyState
+              title="참여 중인 팀이 없습니다"
+              description="팀 관리 페이지에서 팀을 구성하세요."
+            />
+          ) : (
+            <div className="space-y-3">
+              {memberData.teams.map((team) => (
+                <Card key={team.teamId}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">{team.teamName}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>닉네임</TableHead>
+                            <TableHead>이메일</TableHead>
+                            <TableHead>InBody</TableHead>
+                            <TableHead>목표</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
                           {team.members.map((member) => (
-                            <tr
-                              key={member.userId}
-                              className="border-b border-gray-100 last:border-0 dark:border-gray-800"
-                            >
-                              <td className="py-2 pr-4 font-medium">
+                            <TableRow key={member.userId}>
+                              <TableCell className="font-medium">
                                 {member.nickname}
-                              </td>
-                              <td className="py-2 pr-4 text-gray-600 dark:text-gray-400">
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
                                 {member.email}
-                              </td>
-                              <td className="py-2 pr-4">
+                              </TableCell>
+                              <TableCell>
                                 {member.hasInbody ? (
-                                  <span className="inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                  <Badge variant="default" className="text-xs">
                                     완료
                                     {member.lastInbodyDate && (
-                                      <span className="ml-1 text-green-600 dark:text-green-500">
+                                      <span className="ml-1 opacity-70">
                                         ({member.lastInbodyDate})
                                       </span>
                                     )}
-                                  </span>
+                                  </Badge>
                                 ) : (
-                                  <span className="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                                  <Badge variant="destructive" className="text-xs">
                                     미입력
-                                  </span>
+                                  </Badge>
                                 )}
-                              </td>
-                              <td className="py-2">
-                                {member.hasGoals ? (
-                                  <span className="inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                    설정됨
-                                  </span>
-                                ) : (
-                                  <span className="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                                    미설정
-                                  </span>
-                                )}
-                              </td>
-                            </tr>
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={member.hasGoals ? "default" : "destructive"}
+                                  className="text-xs"
+                                >
+                                  {member.hasGoals ? "설정됨" : "미설정"}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
                           ))}
-                        </tbody>
-                      </table>
+                        </TableBody>
+                      </Table>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

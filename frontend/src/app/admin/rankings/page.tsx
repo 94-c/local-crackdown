@@ -3,14 +3,39 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { Challenge, WeeklyResult } from "@/lib/types";
-import { LoadingSkeleton, ErrorAlert, EmptyState } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ErrorAlert } from "@/components/ui/legacy/ErrorAlert";
+import { EmptyState } from "@/components/ui/legacy/EmptyState";
+import { Search, ChevronDown, ChevronUp, Trophy, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+function RankBadge({ rank }: { rank: number }) {
+  const classes = cn(
+    "flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold",
+    rank === 1 && "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+    rank === 2 && "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300",
+    rank === 3 && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+    rank > 3 && "bg-muted text-muted-foreground"
+  );
+  return <div className={classes}>{rank}</div>;
+}
 
 export default function RankingsPage() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [selectedChallengeId, setSelectedChallengeId] = useState("");
-  const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(
-    null
-  );
+  const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
   const [weekNumber, setWeekNumber] = useState(1);
   const [results, setResults] = useState<WeeklyResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,154 +102,142 @@ export default function RankingsPage() {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold tracking-tight">순위표</h1>
-        <LoadingSkeleton variant="table" />
+        <Card>
+          <CardContent className="space-y-3 p-5">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-1/3" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  const maxWeeks = selectedChallenge ? Math.max(selectedChallenge.currentWeek, 1) : 1;
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">순위표</h1>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">순위표</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          주차별 팀 순위 및 개인 달성률을 확인합니다
+        </p>
+      </div>
 
       {error && (
         <ErrorAlert message={error} onRetry={fetchResults} onDismiss={() => setError("")} />
       )}
 
       {/* 필터 */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-          <div>
-            <label
-              htmlFor="challenge-select"
-              className="block text-sm font-medium text-gray-500 dark:text-gray-400"
-            >
-              챌린지
-            </label>
-            <select
-              id="challenge-select"
-              value={selectedChallengeId}
-              onChange={(e) => setSelectedChallengeId(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-            >
-              {challenges.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
-              ))}
-            </select>
+      <Card>
+        <CardContent className="p-5">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">챌린지</label>
+              <Select value={selectedChallengeId} onValueChange={setSelectedChallengeId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="챌린지 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  {challenges.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">주차</label>
+              <Select
+                value={weekNumber.toString()}
+                onValueChange={(v) => setWeekNumber(Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: maxWeeks }, (_, i) => i + 1).map((w) => (
+                    <SelectItem key={w} value={w.toString()}>
+                      {w}주차
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                onClick={fetchResults}
+                disabled={fetching}
+                className="w-full"
+              >
+                <Search className="mr-2 h-4 w-4" />
+                {fetching ? "조회 중..." : "조회"}
+              </Button>
+            </div>
           </div>
-          <div>
-            <label
-              htmlFor="week-select"
-              className="block text-sm font-medium text-gray-500 dark:text-gray-400"
-            >
-              주차
-            </label>
-            <select
-              id="week-select"
-              value={weekNumber}
-              onChange={(e) => setWeekNumber(Number(e.target.value))}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-            >
-              {selectedChallenge &&
-                Array.from(
-                  { length: Math.max(selectedChallenge.currentWeek, 1) },
-                  (_, i) => i + 1
-                ).map((w) => (
-                  <option key={w} value={w}>
-                    {w}주차
-                  </option>
-                ))}
-            </select>
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={fetchResults}
-              disabled={fetching}
-              className="w-full rounded-lg bg-black px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-            >
-              {fetching ? "조회 중..." : "조회"}
-            </button>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* 순위 테이블 */}
+      {/* 순위 결과 */}
       {results.length > 0 && (
         <div className="space-y-3">
           {results.map((result) => (
-            <div
-              key={result.teamName}
-              className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
-            >
+            <Card key={result.teamName}>
               <button
                 type="button"
                 onClick={() => toggleTeam(result.teamName)}
                 className="flex w-full items-center justify-between p-5 text-left"
               >
                 <div className="flex items-center gap-3">
-                  <span
-                    className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold ${
-                      result.teamRank === 1
-                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                        : result.teamRank === 2
-                          ? "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                          : result.teamRank === 3
-                            ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
-                            : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                    }`}
-                  >
-                    {result.teamRank}
-                  </span>
+                  <RankBadge rank={result.teamRank} />
                   <div>
                     <span className="font-semibold">{result.teamName}</span>
                     {result.isBottomTeam && (
-                      <span className="ml-2 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                      <Badge variant="destructive" className="ml-2 text-xs">
+                        <AlertTriangle className="mr-1 h-3 w-3" />
                         하위팀
-                      </span>
+                      </Badge>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-lg font-bold">
-                    {Number(result.teamScore).toFixed(1)}점
-                  </span>
-                  <span className="text-gray-400">
-                    {expandedTeam === result.teamName ? "▲" : "▼"}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Trophy className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-lg font-bold">
+                      {Number(result.teamScore).toFixed(1)}점
+                    </span>
+                  </div>
+                  {expandedTeam === result.teamName ? (
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  )}
                 </div>
               </button>
 
               {expandedTeam === result.teamName && (
-                <div className="border-t border-gray-100 px-5 pb-4 pt-3 dark:border-gray-800">
-                  <div className="space-y-2">
+                <>
+                  <Separator />
+                  <div className="space-y-3 p-5 pt-4">
                     {result.members.map((member) => (
-                      <div
-                        key={member.nickname}
-                        className="flex items-center justify-between"
-                      >
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                      <div key={member.nickname} className="flex items-center gap-3">
+                        <span className="w-20 shrink-0 text-sm text-muted-foreground">
                           {member.nickname}
                         </span>
-                        <div className="flex items-center gap-3">
-                          <div className="h-2 w-24 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                            <div
-                              className="h-full rounded-full bg-black transition-all dark:bg-white"
-                              style={{
-                                width: `${Math.min(Number(member.achievementRate), 100)}%`,
-                              }}
-                            />
-                          </div>
-                          <span className="w-14 text-right text-sm font-medium">
-                            {Number(member.achievementRate).toFixed(1)}%
-                          </span>
-                        </div>
+                        <Progress
+                          value={Math.min(Number(member.achievementRate), 100)}
+                          className="flex-1"
+                        />
+                        <span className="w-14 text-right text-sm font-medium tabular-nums">
+                          {Number(member.achievementRate).toFixed(1)}%
+                        </span>
                       </div>
                     ))}
                   </div>
-                </div>
+                </>
               )}
-            </div>
+            </Card>
           ))}
         </div>
       )}

@@ -1,17 +1,32 @@
-"use client";
+"use client"
+
+import * as React from "react"
+import { cn } from "@/lib/utils"
 
 interface ErrorAlertProps {
-  message: string;
-  onRetry?: () => void;
-  onDismiss?: () => void;
+  message: string
+  onRetry?: () => void
+  onDismiss?: () => void
+  className?: string
 }
 
-export function ErrorAlert({ message, onRetry, onDismiss }: ErrorAlertProps) {
+export function ErrorAlert({
+  message,
+  onRetry,
+  onDismiss,
+  className,
+}: ErrorAlertProps) {
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+    <div
+      className={cn(
+        "rounded-lg border border-destructive/30 bg-destructive/10 p-4",
+        className
+      )}
+      role="alert"
+    >
       <div className="flex items-start gap-3">
         <svg
-          className="h-5 w-5 shrink-0 text-red-500 mt-0.5"
+          className="h-5 w-5 shrink-0 text-destructive mt-0.5"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -24,13 +39,13 @@ export function ErrorAlert({ message, onRetry, onDismiss }: ErrorAlertProps) {
           />
         </svg>
         <div className="flex-1">
-          <p className="text-sm text-red-700 dark:text-red-400">{message}</p>
+          <p className="text-sm text-destructive">{message}</p>
           {(onRetry || onDismiss) && (
             <div className="mt-2 flex gap-2">
               {onRetry && (
                 <button
                   onClick={onRetry}
-                  className="text-sm font-medium text-red-700 underline hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                  className="text-sm font-medium text-destructive underline hover:text-destructive/80"
                 >
                   다시 시도
                 </button>
@@ -38,7 +53,7 @@ export function ErrorAlert({ message, onRetry, onDismiss }: ErrorAlertProps) {
               {onDismiss && (
                 <button
                   onClick={onDismiss}
-                  className="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                  className="text-sm text-destructive/70 hover:text-destructive"
                 >
                   닫기
                 </button>
@@ -48,5 +63,5 @@ export function ErrorAlert({ message, onRetry, onDismiss }: ErrorAlertProps) {
         </div>
       </div>
     </div>
-  );
+  )
 }

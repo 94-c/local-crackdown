@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import type {
   Challenge,
@@ -8,8 +9,42 @@ import type {
   PenaltyMission,
   FinalScoreResult,
 } from "@/lib/types";
-import { LoadingSkeleton, ErrorAlert, EmptyState, useToast } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ErrorAlert } from "@/components/ui/legacy/ErrorAlert";
+import { EmptyState } from "@/components/ui/legacy/EmptyState";
 import RouletteWheel from "@/components/RouletteWheel";
+import {
+  Dices,
+  Plus,
+  X,
+  Calculator,
+  CheckCircle2,
+  XCircle,
+  CheckCheck,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const PENALTY_MISSIONS = [
   "공원 5바퀴 달리기",
@@ -22,44 +57,52 @@ const PENALTY_MISSIONS = [
   "런지 200개",
 ];
 
-export default function MissionsPage() {
-  const toast = useToast();
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
+  ASSIGNED: { label: "배정됨", variant: "secondary" },
+  COMPLETED: { label: "완료", variant: "default" },
+  FAILED: { label: "실패", variant: "destructive" },
+};
 
-  // Challenge selection
+function RankBadge({ rank }: { rank: number }) {
+  const classes = cn(
+    "inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold",
+    rank === 1 && "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+    rank === 2 && "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300",
+    rank === 3 && "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+    rank > 3 && "bg-muted text-muted-foreground"
+  );
+  return <div className={classes}>{rank}</div>;
+}
+
+export default function MissionsPage() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [selectedChallengeId, setSelectedChallengeId] = useState("");
   const [loadingChallenges, setLoadingChallenges] = useState(true);
 
-  // Teams
   const [teams, setTeams] = useState<Team[]>([]);
-
-  // Week
   const [selectedWeek, setSelectedWeek] = useState(1);
 
-  // Penalty missions
   const [penalties, setPenalties] = useState<PenaltyMission[]>([]);
   const [loadingPenalties, setLoadingPenalties] = useState(false);
 
-  // Assignment form
   const [showForm, setShowForm] = useState(false);
   const [formTeamId, setFormTeamId] = useState("");
   const [formMissionName, setFormMissionName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formLoading, setFormLoading] = useState(false);
 
-  // Roulette
   const [showRoulette, setShowRoulette] = useState(false);
   const [rouletteSpinning, setRouletteSpinning] = useState(false);
 
-  // Final scores
   const [finalScores, setFinalScores] = useState<FinalScoreResult[]>([]);
   const [loadingFinalScores, setLoadingFinalScores] = useState(false);
   const [calculating, setCalculating] = useState(false);
 
-  // General
   const [error, setError] = useState("");
 
-  // Fetch challenges on mount
   useEffect(() => {
     const fetchChallenges = async () => {
       try {
@@ -78,7 +121,6 @@ export default function MissionsPage() {
     fetchChallenges();
   }, []);
 
-  // Fetch teams when challenge changes
   const fetchTeams = useCallback(async (challengeId: string) => {
     if (!challengeId) {
       setTeams([]);
@@ -90,12 +132,10 @@ export default function MissionsPage() {
       );
       setTeams(data);
     } catch {
-      // Teams might not load if challenge has none
       setTeams([]);
     }
   }, []);
 
-  // Fetch penalties
   const fetchPenalties = useCallback(
     async (challengeId: string, weekNumber: number) => {
       if (!challengeId) {
@@ -122,7 +162,6 @@ export default function MissionsPage() {
     []
   );
 
-  // Fetch final scores
   const fetchFinalScores = useCallback(async (challengeId: string) => {
     if (!challengeId) {
       setFinalScores([]);
@@ -141,7 +180,6 @@ export default function MissionsPage() {
     }
   }, []);
 
-  // On challenge change
   const handleChallengeChange = (challengeId: string) => {
     setSelectedChallengeId(challengeId);
     setShowForm(false);
@@ -152,7 +190,6 @@ export default function MissionsPage() {
     fetchFinalScores(challengeId);
   };
 
-  // On week change
   const handleWeekChange = (week: number) => {
     setSelectedWeek(week);
     if (selectedChallengeId) {
@@ -160,23 +197,23 @@ export default function MissionsPage() {
     }
   };
 
-  // Roulette handlers
   const handleSpinRoulette = () => {
     setRouletteSpinning(true);
   };
 
-  const handleRouletteResult = useCallback((item: string) => {
-    setRouletteSpinning(false);
-    setFormMissionName(item);
-    toast.success(`"${item}" 이(가) 선택되었습니다!`);
-    // Auto-open assignment form after a brief delay
-    setTimeout(() => {
-      setShowForm(true);
-      setShowRoulette(false);
-    }, 800);
-  }, [toast]);
+  const handleRouletteResult = useCallback(
+    (item: string) => {
+      setRouletteSpinning(false);
+      setFormMissionName(item);
+      toast.success(`"${item}" 이(가) 선택되었습니다!`);
+      setTimeout(() => {
+        setShowForm(true);
+        setShowRoulette(false);
+      }, 800);
+    },
+    []
+  );
 
-  // Assign penalty
   const handleAssignPenalty = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedChallengeId || !formTeamId) return;
@@ -206,17 +243,11 @@ export default function MissionsPage() {
     }
   };
 
-  // Update status
-  const handleStatusUpdate = async (
-    penaltyId: string,
-    status: string
-  ) => {
+  const handleStatusUpdate = async (penaltyId: string, status: string) => {
     try {
       setError("");
-      await apiClient.put(`/api/admin/penalties/${penaltyId}/status`, {
-        status,
-      });
-      toast.success(`상태가 변경되었습니다.`);
+      await apiClient.put(`/api/admin/penalties/${penaltyId}/status`, { status });
+      toast.success("상태가 변경되었습니다.");
       fetchPenalties(selectedChallengeId, selectedWeek);
     } catch (err) {
       setError(
@@ -225,7 +256,6 @@ export default function MissionsPage() {
     }
   };
 
-  // Approve verification
   const handleApproveVerification = async (verificationId: string) => {
     try {
       setError("");
@@ -242,7 +272,6 @@ export default function MissionsPage() {
     }
   };
 
-  // Calculate final scores
   const handleCalculateFinalScores = async () => {
     if (!selectedChallengeId) return;
     if (!confirm("최종 순위를 계산하시겠습니까? 기존 순위가 덮어씌워집니다."))
@@ -269,218 +298,214 @@ export default function MissionsPage() {
     }
   };
 
-  const statusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      ASSIGNED:
-        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-      COMPLETED:
-        "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-      FAILED:
-        "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-    };
-    const labels: Record<string, string> = {
-      ASSIGNED: "배정됨",
-      COMPLETED: "완료",
-      FAILED: "실패",
-    };
-    return (
-      <span
-        className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status] || "bg-gray-100 text-gray-800"}`}
-      >
-        {labels[status] || status}
-      </span>
-    );
-  };
-
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">
-        벌칙 미션 / 최종 순위
-      </h1>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">벌칙 미션 / 최종 순위</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          하위팀에 벌칙 미션을 배정하고 최종 순위를 산정합니다
+        </p>
+      </div>
 
       {error && (
         <ErrorAlert message={error} onDismiss={() => setError("")} />
       )}
 
-      {/* Challenge Selector */}
-      <div>
-        <label
-          htmlFor="challengeSelect"
-          className="block text-sm font-medium"
-        >
-          챌린지 선택
-        </label>
-        <select
-          id="challengeSelect"
+      {/* 챌린지 선택 */}
+      <div className="space-y-2">
+        <Label htmlFor="challengeSelect">챌린지 선택</Label>
+        <Select
           value={selectedChallengeId}
-          onChange={(e) => handleChallengeChange(e.target.value)}
+          onValueChange={handleChallengeChange}
           disabled={loadingChallenges}
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
         >
-          <option value="">
-            {loadingChallenges
-              ? "챌린지 로딩 중..."
-              : "챌린지를 선택하세요"}
-          </option>
-          {challenges.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.title}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger id="challengeSelect">
+            <SelectValue
+              placeholder={
+                loadingChallenges ? "챌린지 로딩 중..." : "챌린지를 선택하세요"
+              }
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {challenges.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {selectedChallengeId && (
         <>
-          {/* Week Selector */}
-          <div>
-            <label className="block text-sm font-medium mb-2">주차 선택</label>
+          {/* 주차 선택 */}
+          <div className="space-y-2">
+            <Label>주차 선택</Label>
             <div className="flex gap-2">
               {[1, 2, 3, 4].map((week) => (
-                <button
+                <Button
                   key={week}
+                  size="sm"
+                  variant={selectedWeek === week ? "default" : "outline"}
                   onClick={() => handleWeekChange(week)}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                    selectedWeek === week
-                      ? "bg-black text-white dark:bg-white dark:text-black"
-                      : "border border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
-                  }`}
                 >
                   {week}주차
-                </button>
+                </Button>
               ))}
             </div>
           </div>
 
-          {/* Assign Penalty Section */}
+          {/* 벌칙 배정 헤더 */}
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              {selectedWeek}주차 벌칙 미션
-            </h3>
+            <h3 className="font-semibold">{selectedWeek}주차 벌칙 미션</h3>
             <div className="flex gap-2">
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   setShowRoulette(!showRoulette);
                   if (showForm) setShowForm(false);
                 }}
-                className="rounded-lg border-2 border-black px-4 py-2 text-sm font-medium text-black transition hover:bg-black hover:text-white dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-black"
               >
+                <Dices className="mr-2 h-4 w-4" />
                 {showRoulette ? "룰렛 닫기" : "룰렛 돌리기"}
-              </button>
-              <button
+              </Button>
+              <Button
+                size="sm"
+                variant={showForm ? "outline" : "default"}
                 onClick={() => {
                   setShowForm(!showForm);
                   if (showRoulette) setShowRoulette(false);
                 }}
-                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
               >
-                {showForm ? "취소" : "벌칙 배정"}
-              </button>
+                {showForm ? (
+                  <>
+                    <X className="mr-2 h-4 w-4" />
+                    취소
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    벌칙 배정
+                  </>
+                )}
+              </Button>
             </div>
           </div>
 
-          {/* Roulette Section */}
+          {/* 룰렛 섹션 */}
           {showRoulette && (
-            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
-              <h3 className="mb-4 text-center text-base font-semibold">
-                벌칙 미션 룰렛
-              </h3>
-              <p className="mb-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                룰렛을 돌려 벌칙 미션을 랜덤으로 선택하세요
-              </p>
-              <RouletteWheel
-                items={PENALTY_MISSIONS}
-                onResult={handleRouletteResult}
-                spinning={rouletteSpinning}
-                onSpin={handleSpinRoulette}
-              />
-            </div>
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="mb-2 text-center text-base font-semibold">
+                  벌칙 미션 룰렛
+                </h3>
+                <p className="mb-4 text-center text-sm text-muted-foreground">
+                  룰렛을 돌려 벌칙 미션을 랜덤으로 선택하세요
+                </p>
+                <RouletteWheel
+                  items={PENALTY_MISSIONS}
+                  onResult={handleRouletteResult}
+                  spinning={rouletteSpinning}
+                  onSpin={handleSpinRoulette}
+                />
+              </CardContent>
+            </Card>
           )}
 
-          {/* Assignment Form */}
+          {/* 배정 폼 */}
           {showForm && (
-            <form
-              onSubmit={handleAssignPenalty}
-              className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
-            >
-              <h3 className="text-base font-semibold">벌칙 미션 배정</h3>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">벌칙 미션 배정</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAssignPenalty} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="penaltyTeam">팀 선택 *</Label>
+                    <Select
+                      value={formTeamId}
+                      onValueChange={setFormTeamId}
+                      required
+                    >
+                      <SelectTrigger id="penaltyTeam">
+                        <SelectValue placeholder="팀을 선택하세요" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teams.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <label
-                  htmlFor="penaltyTeam"
-                  className="block text-sm font-medium"
-                >
-                  팀 선택
-                </label>
-                <select
-                  id="penaltyTeam"
-                  required
-                  value={formTeamId}
-                  onChange={(e) => setFormTeamId(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                >
-                  <option value="">팀을 선택하세요</option>
-                  {teams.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="missionName">미션명 *</Label>
+                    <Input
+                      id="missionName"
+                      type="text"
+                      required
+                      value={formMissionName}
+                      onChange={(e) => setFormMissionName(e.target.value)}
+                      placeholder="예: 공원 5바퀴 뛰기"
+                    />
+                    {formMissionName && (
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        선택된 미션: {formMissionName}
+                      </p>
+                    )}
+                  </div>
 
-              <div>
-                <label
-                  htmlFor="missionName"
-                  className="block text-sm font-medium"
-                >
-                  미션명
-                </label>
-                <input
-                  id="missionName"
-                  type="text"
-                  required
-                  value={formMissionName}
-                  onChange={(e) => setFormMissionName(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                  placeholder="예: 공원 5바퀴 뛰기"
-                />
-                {formMissionName && (
-                  <p className="mt-1 text-xs text-green-600 dark:text-green-400">
-                    선택된 미션: {formMissionName}
-                  </p>
-                )}
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="missionDesc">설명 (선택)</Label>
+                    <Textarea
+                      id="missionDesc"
+                      value={formDescription}
+                      onChange={(e) => setFormDescription(e.target.value)}
+                      rows={3}
+                      placeholder="벌칙 미션에 대한 상세 설명"
+                    />
+                  </div>
 
-              <div>
-                <label
-                  htmlFor="missionDesc"
-                  className="block text-sm font-medium"
-                >
-                  설명 (선택)
-                </label>
-                <textarea
-                  id="missionDesc"
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  rows={3}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-black focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:focus:border-white"
-                  placeholder="벌칙 미션에 대한 상세 설명"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={formLoading}
-                className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200 sm:w-auto"
-              >
-                {formLoading ? "배정 중..." : "벌칙 배정"}
-              </button>
-            </form>
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      type="submit"
+                      disabled={formLoading || !formTeamId}
+                    >
+                      {formLoading ? "배정 중..." : "벌칙 배정"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowForm(false);
+                        setFormMissionName("");
+                        setFormDescription("");
+                        setFormTeamId("");
+                      }}
+                    >
+                      취소
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
           )}
 
-          {/* Penalty List */}
+          {/* 벌칙 목록 */}
           {loadingPenalties ? (
-            <LoadingSkeleton variant="card" count={2} />
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <Card key={i}>
+                  <CardContent className="p-5">
+                    <Skeleton className="mb-2 h-5 w-1/3" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           ) : penalties.length === 0 ? (
             <EmptyState
               title={`${selectedWeek}주차 벌칙 미션이 없습니다`}
@@ -488,175 +513,173 @@ export default function MissionsPage() {
             />
           ) : (
             <div className="space-y-4">
-              {penalties.map((penalty) => (
-                <div
-                  key={penalty.id}
-                  className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="truncate text-base font-semibold">
-                          {penalty.teamName}
-                        </h4>
-                        {statusBadge(penalty.status)}
+              {penalties.map((penalty) => {
+                const statusCfg = STATUS_CONFIG[penalty.status];
+                return (
+                  <Card key={penalty.id}>
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="truncate text-base font-semibold">
+                              {penalty.teamName}
+                            </h4>
+                            <Badge variant={statusCfg?.variant ?? "outline"}>
+                              {statusCfg?.label ?? penalty.status}
+                            </Badge>
+                          </div>
+                          <p className="mt-1 text-sm font-medium">
+                            {penalty.missionName}
+                          </p>
+                          {penalty.description && (
+                            <p className="mt-0.5 text-sm text-muted-foreground">
+                              {penalty.description}
+                            </p>
+                          )}
+                        </div>
+                        {penalty.status === "ASSIGNED" && (
+                          <div className="flex shrink-0 gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                handleStatusUpdate(penalty.id, "COMPLETED")
+                              }
+                              className="text-green-600 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 border-green-200"
+                            >
+                              <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                              완료
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                handleStatusUpdate(penalty.id, "FAILED")
+                              }
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                            >
+                              <XCircle className="mr-1 h-3.5 w-3.5" />
+                              실패
+                            </Button>
+                          </div>
+                        )}
                       </div>
-                      <p className="mt-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {penalty.missionName}
-                      </p>
-                      {penalty.description && (
-                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                          {penalty.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 gap-1">
-                      {penalty.status === "ASSIGNED" && (
+
+                      {/* 인증 내역 */}
+                      {penalty.verifications.length > 0 && (
                         <>
-                          <button
-                            onClick={() =>
-                              handleStatusUpdate(penalty.id, "COMPLETED")
-                            }
-                            className="rounded-lg px-3 py-1.5 text-xs font-medium text-green-600 transition hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
-                          >
-                            완료
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleStatusUpdate(penalty.id, "FAILED")
-                            }
-                            className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                          >
-                            실패
-                          </button>
+                          <Separator className="my-3" />
+                          <p className="mb-2 text-xs font-medium text-muted-foreground">
+                            인증 내역
+                          </p>
+                          <div className="space-y-2">
+                            {penalty.verifications.map((v) => (
+                              <div
+                                key={v.id}
+                                className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium">
+                                    {v.userNickname}
+                                  </p>
+                                  {v.memo && (
+                                    <p className="text-xs text-muted-foreground">
+                                      {v.memo}
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground">
+                                    {new Date(v.createdAt).toLocaleDateString("ko-KR")}
+                                  </p>
+                                </div>
+                                <div className="ml-2 shrink-0">
+                                  {v.approved ? (
+                                    <Badge variant="default" className="text-xs">
+                                      <CheckCheck className="mr-1 h-3 w-3" />
+                                      승인됨
+                                    </Badge>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      onClick={() =>
+                                        handleApproveVerification(v.id)
+                                      }
+                                    >
+                                      승인
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </>
                       )}
-                    </div>
-                  </div>
-
-                  {/* Verifications */}
-                  {penalty.verifications.length > 0 && (
-                    <div className="mt-4 space-y-2 border-t border-gray-100 pt-3 dark:border-gray-800">
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                        인증 내역
-                      </p>
-                      {penalty.verifications.map((v) => (
-                        <div
-                          key={v.id}
-                          className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium">
-                              {v.userNickname}
-                            </p>
-                            {v.memo && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {v.memo}
-                              </p>
-                            )}
-                            <p className="text-xs text-gray-400 dark:text-gray-500">
-                              {new Date(v.createdAt).toLocaleDateString(
-                                "ko-KR"
-                              )}
-                            </p>
-                          </div>
-                          <div className="ml-2 shrink-0">
-                            {v.approved ? (
-                              <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                승인됨
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() =>
-                                  handleApproveVerification(v.id)
-                                }
-                                className="rounded-lg bg-black px-3 py-1 text-xs font-medium text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-                              >
-                                승인
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
 
-          {/* Final Rankings Section */}
-          <div className="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800">
+          {/* 최종 순위 섹션 */}
+          <Separator className="my-2" />
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold">최종 순위</h2>
-              <button
+              <div>
+                <h2 className="text-lg font-bold">최종 순위</h2>
+                <p className="text-sm text-muted-foreground">4주 합산 점수 기반 순위</p>
+              </div>
+              <Button
                 onClick={handleCalculateFinalScores}
                 disabled={calculating}
-                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+                variant="outline"
               >
+                <Calculator className="mr-2 h-4 w-4" />
                 {calculating ? "계산 중..." : "최종 순위 계산"}
-              </button>
+              </Button>
             </div>
 
             {loadingFinalScores ? (
-              <div className="mt-4">
-                <LoadingSkeleton variant="table" />
-              </div>
+              <Card>
+                <CardContent className="space-y-2 p-4">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </CardContent>
+              </Card>
             ) : finalScores.length === 0 ? (
-              <div className="mt-4">
-                <EmptyState
-                  title="최종 순위가 아직 없습니다"
-                  description="최종 순위 계산 버튼을 눌러 4주 합산 순위를 산정하세요."
-                />
-              </div>
+              <EmptyState
+                title="최종 순위가 아직 없습니다"
+                description="최종 순위 계산 버튼을 눌러 4주 합산 순위를 산정하세요."
+              />
             ) : (
-              <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
-                      <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-400">
-                        순위
-                      </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-400">
-                        팀명
-                      </th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600 dark:text-gray-400">
-                        총점
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {finalScores.map((score) => (
-                      <tr
-                        key={`${score.teamName}-${score.finalRank}`}
-                        className="border-b border-gray-100 last:border-0 dark:border-gray-800"
-                      >
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
-                              score.finalRank === 1
-                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                : score.finalRank === 2
-                                  ? "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                                  : score.finalRank === 3
-                                    ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
-                                    : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                            }`}
-                          >
-                            {score.finalRank}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 font-medium">
-                          {score.teamName}
-                        </td>
-                        <td className="px-4 py-3 text-right font-semibold tabular-nums">
-                          {score.totalScore.toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Card>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">순위</TableHead>
+                        <TableHead>팀명</TableHead>
+                        <TableHead className="text-right">총점</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {finalScores.map((score) => (
+                        <TableRow key={`${score.teamName}-${score.finalRank}`}>
+                          <TableCell>
+                            <RankBadge rank={score.finalRank} />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {score.teamName}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold tabular-nums">
+                            {score.totalScore.toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </Card>
             )}
           </div>
         </>

@@ -4,10 +4,23 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { getToken } from "@/lib/auth";
-import { LoadingSkeleton, ErrorAlert } from "@/components/ui";
+import { Spinner } from "@/components/ui";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui";
+import { Button } from "@/components/ui";
+import { Badge } from "@/components/ui";
+import { Separator } from "@/components/ui";
+import { Skeleton } from "@/components/ui";
+import { cn } from "@/lib/utils";
 import type { ChallengeInvite } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowRight, Users, CalendarDays, AlertCircle } from "lucide-react";
 
 export default function JoinPage() {
   const params = useParams();
@@ -68,6 +81,21 @@ export default function JoinPage() {
     }
   };
 
+  const statusVariant = (
+    status: string
+  ): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case "PREPARING":
+        return "secondary";
+      case "ACTIVE":
+        return "default";
+      case "COMPLETED":
+        return "outline";
+      default:
+        return "secondary";
+    }
+  };
+
   const handleJoin = async () => {
     if (!challenge) return;
     setJoining(true);
@@ -92,106 +120,147 @@ export default function JoinPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center p-6">
-        <div className="w-full max-w-lg">
-          <LoadingSkeleton variant="card" />
-        </div>
-      </main>
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center pb-2">
+            <Skeleton className="mx-auto h-20 w-20 rounded-full" />
+            <Skeleton className="mx-auto mt-4 h-6 w-40" />
+            <Skeleton className="mx-auto mt-2 h-4 w-32" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <Skeleton className="h-11 w-full rounded-lg" />
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-6">
-        <div className="w-full max-w-lg space-y-6 text-center">
-          <Image
-            src="/images/mascot.png"
-            alt="지방단속"
-            width={100}
-            height={100}
-            className="mx-auto"
-          />
-          <ErrorAlert message={error} />
-          <Link
-            href="/"
-            className="inline-block text-sm text-gray-500 underline hover:text-black dark:text-gray-400 dark:hover:text-white"
-          >
-            홈으로 돌아가기
-          </Link>
-        </div>
-      </main>
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto mb-4">
+              <Image
+                src="/images/mascot.png"
+                alt="지방단속"
+                width={80}
+                height={80}
+                className="mx-auto"
+              />
+            </div>
+            <CardTitle className="text-xl">초대 오류</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-3 rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/">홈으로 돌아가기</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6">
-      <div className="w-full max-w-lg space-y-6">
-        <div className="flex flex-col items-center gap-2">
-          <Image
-            src="/images/mascot.png"
-            alt="지방단속"
-            width={120}
-            height={120}
-            priority
-          />
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            챌린지에 초대되었습니다
-          </p>
-        </div>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto mb-4">
+            <Image
+              src="/images/mascot.png"
+              alt="지방단속"
+              width={80}
+              height={80}
+              priority
+            />
+          </div>
+          <CardTitle className="text-2xl">지방단속</CardTitle>
+          <CardDescription>챌린지에 초대되었습니다</CardDescription>
+        </CardHeader>
 
-        {challenge && (
-          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-            <h1 className="text-xl font-bold">{challenge.title}</h1>
-            {challenge.description && (
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                {challenge.description}
-              </p>
-            )}
-            <div className="mt-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">상태</span>
-                <span className="font-medium">
+        <CardContent className="space-y-4">
+          {challenge && (
+            <div
+              className={cn(
+                "rounded-lg border bg-card p-4 space-y-3"
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <h2 className="text-lg font-semibold leading-tight">
+                  {challenge.title}
+                </h2>
+                <Badge variant={statusVariant(challenge.status)} className="shrink-0">
                   {statusLabel(challenge.status)}
-                </span>
+                </Badge>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">
-                  시작일
-                </span>
-                <span className="font-medium">
-                  {formatDate(challenge.startDate)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">
-                  종료일
-                </span>
-                <span className="font-medium">
-                  {formatDate(challenge.endDate)}
-                </span>
+
+              {challenge.description && (
+                <p className="text-sm text-muted-foreground">
+                  {challenge.description}
+                </p>
+              )}
+
+              <Separator />
+
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    시작일
+                  </span>
+                  <span className="font-medium">
+                    {formatDate(challenge.startDate)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    종료일
+                  </span>
+                  <span className="font-medium">
+                    {formatDate(challenge.endDate)}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <button
-          type="button"
-          onClick={handleJoin}
-          disabled={joining}
-          className="w-full rounded-lg bg-black px-6 py-3 text-white transition hover:bg-gray-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-        >
-          {joining ? "참가 중..." : "참가하기"}
-        </button>
-
-        <div className="text-center">
-          <Link
-            href="/"
-            className="text-sm text-gray-500 underline hover:text-black dark:text-gray-400 dark:hover:text-white"
+          <Button
+            type="button"
+            onClick={handleJoin}
+            disabled={joining}
+            className="w-full"
+            size="lg"
           >
-            홈으로 돌아가기
-          </Link>
-        </div>
-      </div>
-    </main>
+            {joining ? (
+              <>
+                <Spinner size="sm" className="mr-2" />
+                참가 중...
+              </>
+            ) : (
+              <>
+                <Users className="mr-2 h-4 w-4" />
+                참가하기
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </>
+            )}
+          </Button>
+
+          <div className="text-center">
+            <Link
+              href="/"
+              className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
+            >
+              홈으로 돌아가기
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

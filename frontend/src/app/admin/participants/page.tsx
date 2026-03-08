@@ -1,12 +1,34 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import type { Challenge, Participant } from "@/lib/types";
-import { LoadingSkeleton, ErrorAlert, EmptyState, useToast } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ErrorAlert } from "@/components/ui/legacy/ErrorAlert";
+import { EmptyState } from "@/components/ui/legacy/EmptyState";
+import { CheckCircle2, XCircle, Users } from "lucide-react";
+
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
+  PENDING: { label: "대기", variant: "secondary" },
+  APPROVED: { label: "승인", variant: "default" },
+  REJECTED: { label: "거절", variant: "destructive" },
+};
 
 export default function ParticipantsPage() {
-  const toast = useToast();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [selectedChallengeId, setSelectedChallengeId] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -85,111 +107,139 @@ export default function ParticipantsPage() {
     }
   };
 
-  const statusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-      APPROVED: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-      REJECTED: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
-    };
-    const labels: Record<string, string> = {
-      PENDING: "대기",
-      APPROVED: "승인",
-      REJECTED: "거절",
-    };
-    return (
-      <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status] || ""}`}>
-        {labels[status] || status}
-      </span>
-    );
-  };
+  const pendingCount = participants.filter((p) => p.status === "PENDING").length;
 
   if (loading) {
-    return <LoadingSkeleton variant="card" count={3} />;
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">참여자 관리</h1>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="mb-2 h-5 w-1/3" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">참여자 관리</h1>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">참여자 관리</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          챌린지 참여 신청을 승인하거나 거절합니다
+        </p>
+      </div>
 
       {error && <ErrorAlert message={error} onDismiss={() => setError("")} />}
 
       <div className="flex flex-wrap items-center gap-3">
-        <select
-          value={selectedChallengeId}
-          onChange={(e) => setSelectedChallengeId(e.target.value)}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-        >
-          {challenges.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.title}
-            </option>
-          ))}
-        </select>
+        <Select value={selectedChallengeId} onValueChange={setSelectedChallengeId}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="챌린지 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            {challenges.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-        >
-          <option value="">전체</option>
-          <option value="PENDING">대기</option>
-          <option value="APPROVED">승인</option>
-          <option value="REJECTED">거절</option>
-        </select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[120px]">
+            <SelectValue placeholder="전체" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">전체</SelectItem>
+            <SelectItem value="PENDING">대기</SelectItem>
+            <SelectItem value="APPROVED">승인</SelectItem>
+            <SelectItem value="REJECTED">거절</SelectItem>
+          </SelectContent>
+        </Select>
 
-        {participants.some((p) => p.status === "PENDING") && (
-          <button
-            onClick={handleApproveAll}
-            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700"
-          >
-            전체 승인
-          </button>
+        {pendingCount > 0 && (
+          <Button onClick={handleApproveAll} variant="default" size="sm">
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            전체 승인 ({pendingCount}명)
+          </Button>
         )}
       </div>
 
       {participants.length === 0 ? (
-        <EmptyState title="참여자가 없습니다" />
+        <EmptyState
+          title="참여자가 없습니다"
+          description="아직 참여 신청이 없습니다."
+        />
       ) : (
         <div className="space-y-2">
-          {participants.map((p) => (
-            <div
-              key={p.id}
-              className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{p.nickname}</span>
-                    {statusBadge(p.status)}
+          {participants.map((p) => {
+            const statusCfg = STATUS_CONFIG[p.status];
+            return (
+              <Card key={p.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{p.nickname}</span>
+                        <Badge variant={statusCfg?.variant ?? "outline"}>
+                          {statusCfg?.label ?? p.status}
+                        </Badge>
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{p.email}</p>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        <Badge
+                          variant={p.hasTeam ? "secondary" : "outline"}
+                          className="text-xs"
+                        >
+                          <Users className="mr-1 h-3 w-3" />
+                          {p.hasTeam ? "팀 배정됨" : "팀 미배정"}
+                        </Badge>
+                        <Badge
+                          variant={p.hasInbody ? "secondary" : "outline"}
+                          className="text-xs"
+                        >
+                          {p.hasInbody ? "인바디 입력" : "인바디 미입력"}
+                        </Badge>
+                        <Badge
+                          variant={p.hasGoals ? "secondary" : "outline"}
+                          className="text-xs"
+                        >
+                          {p.hasGoals ? "목표 설정" : "목표 미설정"}
+                        </Badge>
+                      </div>
+                    </div>
+                    {p.status === "PENDING" && (
+                      <div className="flex shrink-0 gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleApprove(p.id)}
+                        >
+                          <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                          승인
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleReject(p.id)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                        >
+                          <XCircle className="mr-1 h-3.5 w-3.5" />
+                          거절
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                    {p.email}
-                  </p>
-                  <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
-                    <span>{p.hasTeam ? "팀 배정됨" : "팀 미배정"}</span>
-                    <span>{p.hasInbody ? "인바디 입력" : "인바디 미입력"}</span>
-                    <span>{p.hasGoals ? "목표 설정" : "목표 미설정"}</span>
-                  </div>
-                </div>
-                {p.status === "PENDING" && (
-                  <div className="flex shrink-0 gap-2">
-                    <button
-                      onClick={() => handleApprove(p.id)}
-                      className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-green-700"
-                    >
-                      승인
-                    </button>
-                    <button
-                      onClick={() => handleReject(p.id)}
-                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                    >
-                      거절
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
